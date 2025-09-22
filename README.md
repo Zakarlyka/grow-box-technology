@@ -1,73 +1,201 @@
-# Welcome to your Lovable project
+# IoT Platform - ESP32 Device Management
 
-## Project info
+## Опис проєкту
 
-**URL**: https://lovable.dev/projects/35c60c70-d49e-4f91-a1df-aac07e00756b
+Багатомовна IoT-платформа для підключення та керування ESP32-пристроями з веб-інтерфейсом у реальному часі.
 
-## How can I edit this code?
+## Реалізовані можливості
 
-There are several ways of editing your application.
+### Frontend (React + TypeScript)
+- ✅ **Багатомовна підтримка** (українська, англійська, російська)  
+- ✅ **Responsive дизайн** з темною tech-тематикою
+- ✅ **PWA готовність** для мобільних пристроїв
+- ✅ **Dashboard** з графіками телеметрії у реальному часі
+- ✅ **Панель керування пристроями** з кнопками та слайдерами
+- ✅ **Симуляція IoT даних** для демонстрації функціоналу
 
-**Use Lovable**
+### Функціонал
+- **Dashboard**: статистика пристроїв, графіки температури/вологості
+- **Device Management**: керування ESP32 пристроями (помпи, освітлення, вентиляція, обігрівачі)
+- **Real-time monitoring**: симуляція даних з датчиків
+- **Responsive UI**: адаптивний дизайн для всіх пристроїв
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/35c60c70-d49e-4f91-a1df-aac07e00756b) and start prompting.
+## Технології
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **Charts**: Recharts для візуалізації даних
+- **Icons**: Lucide React
+- **Internationalization**: react-i18next
+- **Build**: Vite
+- **UI Components**: shadcn/ui
 
-**Use your preferred IDE**
+## Швидкий старт
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Клонування репозиторію**
+```bash
+git clone <your-repo-url>
+cd iot-platform
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. **Установка залежностей**
+```bash
+npm install
+```
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. **Запуск у режимі розробки**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. **Збірка для продакшн**
+```bash
+npm run build
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Наступні кроки
 
-**Use GitHub Codespaces**
+### Backend інтеграція
+Для повної функціональності потрібно підключити **Supabase**:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Authentication** (email/password)
+- **PostgreSQL** для зберігання користувачів та налаштувань
+- **Real-time subscriptions** для живих даних
+- **Edge Functions** для MQTT інтеграції
 
-## What technologies are used for this project?
+### MQTT інтеграція
+```javascript
+// Приклад MQTT топіків
+grow/<user_id>/<device_id>/telemetry  // пристрій → сервер  
+grow/<user_id>/<device_id>/command    // сервер → пристрій
+grow/<user_id>/<device_id>/status     // online/offline
+```
 
-This project is built with:
+### ESP32 прошивка (приклад)
+```cpp
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+// WiFi та MQTT конфігурація
+const char* ssid = "your-wifi";
+const char* password = "your-password";
+const char* mqtt_server = "your-mqtt-broker.com";
 
-## How can I deploy this project?
+WiFiClient espClient;
+PubSubClient client(espClient);
 
-Simply open [Lovable](https://lovable.dev/projects/35c60c70-d49e-4f91-a1df-aac07e00756b) and click on Share -> Publish.
+void setup() {
+  Serial.begin(115200);
+  
+  // Підключення до WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  // Налаштування MQTT
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+}
 
-## Can I connect a custom domain to my Lovable project?
+void callback(char* topic, byte* payload, unsigned int length) {
+  // Обробка команд від сервера
+  StaticJsonDocument<200> doc;
+  deserializeJson(doc, payload, length);
+  
+  if (doc["command"] == "water_pump") {
+    digitalWrite(WATER_PUMP_PIN, doc["value"]);
+  }
+  // ... інші команди
+}
 
-Yes, you can!
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+  
+  // Відправка телеметрії кожні 30 секунд
+  static unsigned long lastMsg = 0;
+  unsigned long now = millis();
+  if (now - lastMsg > 30000) {
+    lastMsg = now;
+    sendTelemetry();
+  }
+}
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+void sendTelemetry() {
+  StaticJsonDocument<200> doc;
+  doc["temperature"] = 24.5;
+  doc["humidity"] = 65;
+  doc["soil_moisture"] = 72;
+  doc["light_level"] = 85;
+  doc["timestamp"] = millis();
+  
+  char jsonString[512];
+  serializeJson(doc, jsonString);
+  
+  client.publish("grow/user123/device001/telemetry", jsonString);
+}
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Структура проєкту
+
+```
+src/
+├── components/           # React компоненти
+│   ├── ui/              # Базові UI компоненти
+│   ├── Header.tsx       # Заголовок з мовним перемикачем
+│   ├── Navigation.tsx   # Бічна навігація
+│   ├── Dashboard.tsx    # Головна панель
+│   └── Devices.tsx      # Керування пристроями
+├── i18n/               # Інтернаціоналізація
+│   ├── locales/        # Переклади (uk, en, ru)
+│   └── index.ts        # Конфігурація i18n
+├── pages/              # Сторінки
+└── lib/                # Утиліти
+
+public/
+└── manifest.json       # PWA маніфест
+```
+
+## Дизайн система
+
+- **Кольори**: тьмно-синя/зелена техно-тематика
+- **Акценти**: електричний синій (#2563eb) + зелений (#22c55e)
+- **Градієнти**: використовуються для кнопок та карток
+- **Анімації**: pulse-glow для онлайн статусів
+- **Типографія**: сучасні шрифти з акцентом на читабельність
+
+## Deployment
+
+### Docker (рекомендовано)
+```dockerfile
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Vercel/Netlify
+```bash
+npm run build
+# Завантажити dist/ папку
+```
+
+## Ліцензія
+
+MIT License - дивіться [LICENSE](LICENSE) для деталей.
+
+## Контакти
+
+Для питань та пропозицій створіть issue в цьому репозиторії.

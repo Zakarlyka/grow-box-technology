@@ -2,43 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* IoT Platform Design System - Tech meets Nature
+All colors MUST be HSL. Emphasis on dark tech theme with green/blue accents.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Main backgrounds - Dark tech theme */
+    --background: 220 20% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Cards with subtle transparency */
+    --card: 220 25% 12%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Popovers */
+    --popover: 220 25% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Electric Blue for tech */
+    --primary: 210 100% 56%;
+    --primary-foreground: 220 25% 10%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Darker blue-gray */
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 210 40% 90%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted elements */
+    --muted: 215 20% 15%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Electric green for IoT/grow theme */
+    --accent: 140 80% 50%;
+    --accent-foreground: 220 25% 10%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Success - Natural green */
+    --success: 120 60% 45%;
+    --success-foreground: 210 40% 98%;
+
+    /* Warning - Amber */
+    --warning: 45 90% 55%;
+    --warning-foreground: 220 25% 10%;
+
+    /* Destructive - Red */
+    --destructive: 0 75% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders and inputs with neon effect */
+    --border: 215 25% 20%;
+    --input: 215 25% 16%;
+    --ring: 210 100% 56%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Gradients for IoT theme */
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 56%), hsl(140 80% 50%));
+    --gradient-card: linear-gradient(135deg, hsl(220 25% 12%), hsl(215 25% 16%));
+    --gradient-accent: linear-gradient(90deg, hsl(140 80% 50%), hsl(160 70% 55%));
+    
+    /* Glows and effects */
+    --glow-primary: 0 0 20px hsl(210 100% 56% / 0.3);
+    --glow-accent: 0 0 20px hsl(140 80% 50% / 0.3);
+    --shadow-card: 0 8px 32px hsl(220 25% 5% / 0.4);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 220 25% 10%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -101,5 +132,52 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom animations for IoT platform */
+@layer components {
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-data-flow {
+    animation: data-flow 3s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-glow {
+  from {
+    box-shadow: 0 0 5px hsl(210 100% 56% / 0.2);
+  }
+  to {
+    box-shadow: 0 0 20px hsl(210 100% 56% / 0.6), 0 0 30px hsl(140 80% 50% / 0.3);
+  }
+}
+
+@keyframes data-flow {
+  0%, 100% {
+    transform: translateX(0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(10px) scale(1.05);
+    opacity: 1;
   }
 }

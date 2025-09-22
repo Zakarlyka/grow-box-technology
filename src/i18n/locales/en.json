@@ -1,0 +1,64 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "devices": "Devices",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "IoT Control Panel",
+    "subtitle": "Manage your ESP32 devices in real-time",
+    "totalDevices": "Total Devices",
+    "onlineDevices": "Online Devices",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "soilMoisture": "Soil Moisture",
+    "lightLevel": "Light Level",
+    "realTimeData": "Real-time Data",
+    "deviceStatus": "Device Status"
+  },
+  "devices": {
+    "title": "My Devices",
+    "addDevice": "Add Device",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last Seen",
+    "controls": "Controls",
+    "telemetry": "Telemetry"
+  },
+  "controls": {
+    "waterPump": "Water Pump",
+    "lightSystem": "Light System",
+    "ventilation": "Ventilation",
+    "heater": "Heater",
+    "on": "On",
+    "off": "Off"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "account": "Account"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

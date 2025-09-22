@@ -1,0 +1,64 @@
+{
+  "navigation": {
+    "dashboard": "Панель приладів",
+    "devices": "Пристрої",
+    "analytics": "Аналітика",
+    "settings": "Налаштування",
+    "logout": "Вийти"
+  },
+  "dashboard": {
+    "title": "IoT Панель керування",
+    "subtitle": "Керуйте своїми ESP32 пристроями у реальному часі",
+    "totalDevices": "Загалом пристроїв",
+    "onlineDevices": "Онлайн пристроїв",
+    "temperature": "Температура",
+    "humidity": "Вологість",
+    "soilMoisture": "Вологість ґрунту",
+    "lightLevel": "Рівень освітлення",
+    "realTimeData": "Дані у реальному часі",
+    "deviceStatus": "Статус пристроїв"
+  },
+  "devices": {
+    "title": "Мої пристрої",
+    "addDevice": "Додати пристрій",
+    "online": "Онлайн",
+    "offline": "Офлайн",
+    "lastSeen": "Остання активність",
+    "controls": "Керування",
+    "telemetry": "Телеметрія"
+  },
+  "controls": {
+    "waterPump": "Водяна помпа",
+    "lightSystem": "Система освітлення",
+    "ventilation": "Вентиляція",
+    "heater": "Обігрівач",
+    "on": "Увімкнено",
+    "off": "Вимкнено"
+  },
+  "auth": {
+    "signIn": "Увійти",
+    "signUp": "Зареєструватися",
+    "email": "Email",
+    "password": "Пароль",
+    "confirmPassword": "Підтвердити пароль",
+    "forgotPassword": "Забули пароль?",
+    "noAccount": "Немає акаунта?",
+    "hasAccount": "Вже є акаунт?"
+  },
+  "settings": {
+    "title": "Налаштування",
+    "language": "Мова",
+    "notifications": "Сповіщення",
+    "profile": "Профіль",
+    "account": "Акаунт"
+  },
+  "common": {
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "delete": "Видалити",
+    "edit": "Редагувати",
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успішно"
+  }
+}
