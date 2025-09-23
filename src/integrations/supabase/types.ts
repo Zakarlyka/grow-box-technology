@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      device_controls: {
+        Row: {
+          control_name: string
+          control_type: string
+          created_at: string
+          device_id: string
+          id: string
+          intensity: number | null
+          schedule: Json | null
+          updated_at: string
+          value: boolean | null
+        }
+        Insert: {
+          control_name: string
+          control_type: string
+          created_at?: string
+          device_id: string
+          id?: string
+          intensity?: number | null
+          schedule?: Json | null
+          updated_at?: string
+          value?: boolean | null
+        }
+        Update: {
+          control_name?: string
+          control_type?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          intensity?: number | null
+          schedule?: Json | null
+          updated_at?: string
+          value?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_controls_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devices: {
+        Row: {
+          configuration: Json | null
+          created_at: string
+          device_id: string
+          id: string
+          last_seen: string | null
+          location: string | null
+          name: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string
+          device_id: string
+          id?: string
+          last_seen?: string | null
+          location?: string | null
+          name: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          last_seen?: string | null
+          location?: string | null
+          name?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          category: string | null
+          created_at: string
+          developer_id: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          category?: string | null
+          created_at?: string
+          developer_id?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          category?: string | null
+          created_at?: string
+          developer_id?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sensor_data: {
+        Row: {
+          device_id: string
+          ec_level: number | null
+          humidity: number | null
+          id: string
+          light_level: number | null
+          ph_level: number | null
+          soil_moisture: number | null
+          temperature: number | null
+          timestamp: string
+          water_level: number | null
+        }
+        Insert: {
+          device_id: string
+          ec_level?: number | null
+          humidity?: number | null
+          id?: string
+          light_level?: number | null
+          ph_level?: number | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          timestamp?: string
+          water_level?: number | null
+        }
+        Update: {
+          device_id?: string
+          ec_level?: number | null
+          humidity?: number | null
+          id?: string
+          light_level?: number | null
+          ph_level?: number | null
+          soil_moisture?: number | null
+          temperature?: number | null
+          timestamp?: string
+          water_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensor_data_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
