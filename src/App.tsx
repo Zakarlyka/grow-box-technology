@@ -66,7 +66,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename="/grow-box-technology">
+        <BrowserRouter basename={import.meta.env.PROD ? "/grow-box-technology" : "/"}>
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
