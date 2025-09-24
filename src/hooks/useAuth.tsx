@@ -9,6 +9,8 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithGitHub: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   profile: any;
   refreshProfile: () => Promise<void>;
@@ -142,6 +144,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Помилка входу через Google",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (err) {
+      console.error('Google sign in error:', err);
+      return { error: err };
+    }
+  };
+
+  const signInWithGitHub = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Помилка входу через GitHub",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (err) {
+      console.error('GitHub sign in error:', err);
+      return { error: err };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -168,6 +218,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
+    signInWithGitHub,
     signOut,
     profile,
     refreshProfile,
