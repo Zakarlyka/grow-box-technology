@@ -14,10 +14,11 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: mode === 'production' ? '/grow-box-technology/' : '/',
+  base: '/',
   build: {
     outDir: 'dist',
     sourcemap: false,
+    assetsDir: 'assets',
     rollupOptions: {
       output: {
         manualChunks: undefined,

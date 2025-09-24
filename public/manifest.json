@@ -1,21 +1,21 @@
 {
-  "name": "IoT Platform - ESP32 Device Management",
-  "short_name": "IoT Platform",
-  "description": "Professional IoT platform for ESP32 device management, monitoring, and control",
+  "name": "Grow Box Technology - IoT Platform",
+  "short_name": "GrowBox",
+  "description": "Professional IoT platform for ESP32 device management, monitoring, and control with Grow Box Technology",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#0f0f23",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192x192/2563eb/ffffff?text=IoT",
+      "src": "https://via.placeholder.com/192x192/2563eb/ffffff?text=GB",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512x512/2563eb/ffffff?text=IoT",
+      "src": "https://via.placeholder.com/512x512/2563eb/ffffff?text=GB",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
