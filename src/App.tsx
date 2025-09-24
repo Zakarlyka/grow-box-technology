@@ -66,7 +66,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename="/grow-box-technology">
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
