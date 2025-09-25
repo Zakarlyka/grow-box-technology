@@ -58,11 +58,92 @@ export type Database = {
           },
         ]
       }
+      device_groups: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      device_schedules: {
+        Row: {
+          control_name: string
+          created_at: string | null
+          days_of_week: number[] | null
+          device_id: string
+          end_time: string | null
+          id: string
+          interval_minutes: number | null
+          is_active: boolean | null
+          schedule_type: string
+          start_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          control_name: string
+          created_at?: string | null
+          days_of_week?: number[] | null
+          device_id: string
+          end_time?: string | null
+          id?: string
+          interval_minutes?: number | null
+          is_active?: boolean | null
+          schedule_type: string
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          control_name?: string
+          created_at?: string | null
+          days_of_week?: number[] | null
+          device_id?: string
+          end_time?: string | null
+          id?: string
+          interval_minutes?: number | null
+          is_active?: boolean | null
+          schedule_type?: string
+          start_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_schedules_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           configuration: Json | null
           created_at: string
           device_id: string
+          group_id: string | null
           id: string
           last_seen: string | null
           location: string | null
@@ -76,6 +157,7 @@ export type Database = {
           configuration?: Json | null
           created_at?: string
           device_id: string
+          group_id?: string | null
           id?: string
           last_seen?: string | null
           location?: string | null
@@ -89,6 +171,7 @@ export type Database = {
           configuration?: Json | null
           created_at?: string
           device_id?: string
+          group_id?: string | null
           id?: string
           last_seen?: string | null
           location?: string | null
@@ -96,6 +179,53 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "device_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          email_enabled: boolean | null
+          humidity_max: number | null
+          humidity_min: number | null
+          id: string
+          push_enabled: boolean | null
+          temperature_max: number | null
+          temperature_min: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          humidity_max?: number | null
+          humidity_min?: number | null
+          id?: string
+          push_enabled?: boolean | null
+          temperature_max?: number | null
+          temperature_min?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          humidity_max?: number | null
+          humidity_min?: number | null
+          id?: string
+          push_enabled?: boolean | null
+          temperature_max?: number | null
+          temperature_min?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -109,6 +239,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          phone: string | null
           role: string
           updated_at: string
           user_id: string
@@ -121,6 +252,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          phone?: string | null
           role?: string
           updated_at?: string
           user_id: string
@@ -133,6 +265,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
           role?: string
           updated_at?: string
           user_id?: string
