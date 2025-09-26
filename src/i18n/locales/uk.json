@@ -2,6 +2,7 @@
   "navigation": {
     "dashboard": "Панель приладів",
     "devices": "Пристрої",
+    "remoteControl": "Дистанційне керування",
     "analytics": "Аналітика",
     "settings": "Налаштування",
     "logout": "Вийти"
@@ -25,7 +26,24 @@
     "offline": "Офлайн",
     "lastSeen": "Остання активність",
     "controls": "Керування",
-    "telemetry": "Телеметрія"
+    "telemetry": "Телеметрія",
+    "power": "Живлення",
+    "lighting": "Освітлення",
+    "lightControl": "Керування світлом",
+    "intensity": "Інтенсивність",
+    "ventilation": "Вентиляція",
+    "fanControl": "Керування вентилятором",
+    "speed": "Швидкість",
+    "watering": "Полив",
+    "waterPump": "Водяна помпа",
+    "waterNow": "Полити зараз",
+    "duration": "Тривалість",
+    "joystickControl": "Джойстик керування",
+    "terminal": "Термінал",
+    "connected": "Підключено",
+    "disconnected": "Відключено",
+    "enterCommand": "Введіть команду...",
+    "notConnected": "Пристрій не підключено"
   },
   "controls": {
     "waterPump": "Водяна помпа",
@@ -38,6 +56,17 @@
     "fanSpeed": "Швидкість вентилятора",
     "schedule": "Розклад",
     "groups": "Групи"
+  },
+  "sensors": {
+    "temperature": "Температура",
+    "humidity": "Вологість",
+    "soilMoisture": "Вологість грунту",
+    "lightLevel": "Рівень освітлення",
+    "waterLevel": "Рівень води",
+    "realTime": "Реальний час",
+    "realTimeChart": "Графік в реальному часі",
+    "live": "Живі дані",
+    "paused": "Призупинено"
   },
   "auth": {
     "signIn": "Увійти",

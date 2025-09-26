@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
 import { Devices } from '@/components/Devices';
+import { RemoteControlPage } from '@/pages/RemoteControlPage';
 import UserCabinet from '@/components/UserCabinet';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
 
@@ -17,6 +18,8 @@ const Index = () => {
         return <Dashboard />;
       case 'devices':
         return <Devices />;
+      case 'remote-control':
+        return <RemoteControlPage />;
       case 'cabinet':
         return <UserCabinet />;
       case 'developer':
@@ -41,7 +44,7 @@ const Index = () => {
       <Header />
       <div className="flex min-h-[calc(100vh-4rem)]">
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto pb-16 lg:pb-0">
           {renderContent()}
         </main>
       </div>

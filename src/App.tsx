@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import './i18n';
 import Index from "./pages/Index";
+import { RemoteControlPage } from "./pages/RemoteControlPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/remote-control"
+        element={
+          <ProtectedRoute>
+            <RemoteControlPage />
           </ProtectedRoute>
         }
       />

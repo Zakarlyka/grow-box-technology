@@ -34,6 +34,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       roles: ['user', 'developer', 'admin']
     },
     {
+      id: 'remote-control',
+      label: t('navigation.remoteControl'),
+      icon: Wifi,
+      roles: ['user', 'developer', 'admin']
+    },
+    {
       id: 'cabinet',
       label: 'Кабінет',
       icon: User,
