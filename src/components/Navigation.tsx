@@ -34,9 +34,21 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       roles: ['user', 'developer', 'admin']
     },
     {
+      id: 'device-management',
+      label: 'Device Management',
+      icon: Cpu,
+      roles: ['user', 'developer', 'admin']
+    },
+    {
       id: 'remote-control',
       label: t('navigation.remoteControl'),
       icon: Wifi,
+      roles: ['user', 'developer', 'admin']
+    },
+    {
+      id: 'analytics',
+      label: t('navigation.analytics'),
+      icon: BarChart3,
       roles: ['user', 'developer', 'admin']
     },
     {
@@ -50,13 +62,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       label: 'Розробник',
       icon: Code,
       roles: ['developer', 'admin']
-    },
-    {
-      id: 'analytics',
-      label: t('navigation.analytics'),
-      icon: BarChart3,
-      roles: ['user', 'developer', 'admin']
-    },
+    }
   ];
 
   const visibleItems = menuItems.filter(item => 

@@ -5,6 +5,8 @@ import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
 import { Devices } from '@/components/Devices';
 import { RemoteControlPage } from '@/pages/RemoteControlPage';
+import { DeviceManagement } from '@/components/DeviceManagement';
+import { AdvancedCharts } from '@/components/AdvancedCharts';
 import UserCabinet from '@/components/UserCabinet';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
 
@@ -18,22 +20,17 @@ const Index = () => {
         return <Dashboard />;
       case 'devices':
         return <Devices />;
+      case 'device-management':
+        return <DeviceManagement />;
       case 'remote-control':
         return <RemoteControlPage />;
+      case 'analytics':
+        return <AdvancedCharts />;
       case 'cabinet':
         return <UserCabinet />;
       case 'developer':
         return profile?.role === 'developer' || profile?.role === 'admin' ? 
           <DeveloperCabinet /> : <UserCabinet />;
-      case 'analytics':
-        return (
-          <div className="flex-1 p-6">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Аналітика
-            </h1>
-            <p className="text-muted-foreground mt-2">Розширена аналітика незабаром...</p>
-          </div>
-        );
       default:
         return <Dashboard />;
     }
