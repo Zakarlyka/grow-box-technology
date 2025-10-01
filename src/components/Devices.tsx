@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Thermometer, 
-  Droplets, 
-  Sun, 
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Thermometer,
+  Droplets,
+  Sun,
   Sprout,
   Power,
   Fan,
@@ -40,7 +42,7 @@ interface Device {
     lightSystem: boolean;
     ventilation: boolean;
     heater: boolean;
-    lightIntensity: number;
+    lightSchedule: { startTime: string; endTime: string; interval: string; duration: string };
     fanSpeed: number;
   };
 }
@@ -50,7 +52,6 @@ export function Devices() {
   const [devices, setDevices] = useState<Device[]>([]);
 
   useEffect(() => {
-    // Simulate device data
     const mockDevices: Device[] = [
       {
         id: 'esp32-grow-001',
@@ -67,7 +68,7 @@ export function Devices() {
           lightSystem: true,
           ventilation: true,
           heater: false,
-          lightIntensity: 80,
+          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
           fanSpeed: 60,
         }
       },
@@ -86,7 +87,7 @@ export function Devices() {
           lightSystem: true,
           ventilation: false,
           heater: true,
-          lightIntensity: 95,
+          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
           fanSpeed: 40,
         }
       },
@@ -105,37 +106,36 @@ export function Devices() {
           lightSystem: false,
           ventilation: false,
           heater: false,
-          lightIntensity: 0,
+          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
           fanSpeed: 0,
         }
       }
     ];
-
     setDevices(mockDevices);
   }, []);
 
-  const updateDeviceControl = (deviceId: string, controlKey: string, value: boolean | number) => {
-    setDevices(prev => prev.map(device => 
-      device.id === deviceId 
-        ? { 
-            ...device, 
+  const updateDeviceControl = (deviceId: string, controlKey: string, value: boolean | number | { startTime: string; endTime: string; interval: string; duration: string }) => {
+    setDevices(prev => prev.map(device =>
+      device.id === deviceId
+        ? {
+            ...device,
             controls: { ...device.controls, [controlKey]: value }
           }
         : device
     ));
   };
 
-  const ControlCard = ({ 
-    title, 
-    icon: Icon, 
-    isActive, 
-    onToggle, 
-    deviceId, 
-    disabled = false 
+  const ControlCard = ({
+    title,
+    icon: Icon,
+    isActive,
+    onToggle,
+    deviceId,
+    disabled = false
   }: any) => (
     <div className={`p-3 rounded-lg border transition-all duration-200 ${
-      isActive 
-        ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent' 
+      isActive
+        ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
         : 'bg-muted/20 border-border/50'
     } ${disabled ? 'opacity-50' : ''}`}>
       <div className="flex items-center justify-between">
@@ -143,8 +143,8 @@ export function Devices() {
           <Icon className={`h-4 w-4 ${isActive ? 'text-accent' : 'text-muted-foreground'}`} />
           <span className="text-sm font-medium">{title}</span>
         </div>
-        <Switch 
-          checked={isActive} 
+        <Switch
+          checked={isActive}
           onCheckedChange={onToggle}
           disabled={disabled}
         />
@@ -178,7 +178,6 @@ export function Devices() {
           {t('devices.addDevice')}
         </Button>
       </div>
-
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {devices.map((device) => (
           <Card key={device.id} className="gradient-card border-border/50 hover:shadow-lg transition-all duration-300">
@@ -189,7 +188,7 @@ export function Devices() {
                   <p className="text-sm text-muted-foreground">{device.id}</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge 
+                  <Badge
                     variant={device.status === 'online' ? 'default' : 'destructive'}
                     className={device.status === 'online' ? 'animate-pulse-glow' : ''}
                   >
@@ -218,7 +217,6 @@ export function Devices() {
                 {t('devices.lastSeen')}: {device.lastSeen}
               </p>
             </CardHeader>
-
             <CardContent className="space-y-4">
               {/* Sensor Data */}
               <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
@@ -251,11 +249,9 @@ export function Devices() {
                   color="text-warning"
                 />
               </div>
-
               {/* Controls */}
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-muted-foreground">{t('devices.controls')}</h4>
-                
                 <div className="grid grid-cols-2 gap-2">
                   <ControlCard
                     title={t('controls.waterPump')}
@@ -290,28 +286,101 @@ export function Devices() {
                     disabled={device.status === 'offline'}
                   />
                 </div>
-
-                {/* Sliders */}
+                {/* Light Timer */}
+                {device.status === 'online' && device.controls.lightSystem && (
+                  <div className="space-y-3 pt-2">
+                    <div className="text-center p-3 bg-gray-900 rounded-lg">
+                      <div className="text-lg font-mono text-green-400">
+                        {device.controls.lightSchedule.interval === 'off'
+                          ? `${t('controls.on')}: ${device.controls.lightSchedule.startTime} - ${t('controls.off')}: ${device.controls.lightSchedule.endTime}`
+                          : `${t('controls.every')} ${device.controls.lightSchedule.interval}h ${t('controls.for')} ${device.controls.lightSchedule.duration}min`}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{t('controls.currentSchedule')}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="time"
+                        value={device.controls.lightSchedule.startTime}
+                        onChange={(e) => updateDeviceControl(device.id, 'lightSchedule', {
+                          ...device.controls.lightSchedule,
+                          startTime: e.target.value
+                        })}
+                        disabled={!device.controls.lightSystem}
+                      />
+                      <Input
+                        type="time"
+                        value={device.controls.lightSchedule.endTime}
+                        onChange={(e) => updateDeviceControl(device.id, 'lightSchedule', {
+                          ...device.controls.lightSchedule,
+                          endTime: e.target.value
+                        })}
+                        disabled={!device.controls.lightSystem}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        value={device.controls.lightSchedule.interval}
+                        onValueChange={(value) => updateDeviceControl(device.id, 'lightSchedule', {
+                          ...device.controls.lightSchedule,
+                          interval: value
+                        })}
+                        disabled={!device.controls.lightSystem}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('controls.everyHour')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="off">{t('controls.simpleTimer')}</SelectItem>
+                          <SelectItem value="1">1 {t('controls.hour')}</SelectItem>
+                          <SelectItem value="2">2 {t('controls.hours')}</SelectItem>
+                          <SelectItem value="3">3 {t('controls.hours')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={device.controls.lightSchedule.duration}
+                        onValueChange={(value) => updateDeviceControl(device.id, 'lightSchedule', {
+                          ...device.controls.lightSchedule,
+                          duration: value
+                        })}
+                        disabled={!device.controls.lightSystem || device.controls.lightSchedule.interval === 'off'}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('controls.forMinutes')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 {t('controls.minutes')}</SelectItem>
+                          <SelectItem value="30">30 {t('controls.minutes')}</SelectItem>
+                          <SelectItem value="60">60 {t('controls.minutes')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => updateDeviceControl(device.id, 'lightSchedule', {
+                          ...device.controls.lightSchedule
+                        })}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        disabled={!device.controls.lightSystem}
+                      >
+                        {t('controls.setTimer')}
+                      </Button>
+                      <Button
+                        onClick={() => updateDeviceControl(device.id, 'lightSystem', false)}
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={!device.controls.lightSystem}
+                      >
+                        {t('controls.off')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {/* Fan Speed Slider */}
                 {device.status === 'online' && (
                   <div className="space-y-3 pt-2">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm text-muted-foreground">Light Intensity</label>
-                        <span className="text-sm text-primary">{device.controls.lightIntensity}%</span>
-                      </div>
-                      <Slider
-                        value={[device.controls.lightIntensity]}
-                        onValueChange={(value) => updateDeviceControl(device.id, 'lightIntensity', value[0])}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                        disabled={!device.controls.lightSystem}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm text-muted-foreground">Fan Speed</label>
+                        <label className="text-sm text-muted-foreground">{t('controls.fanSpeed')}</label>
                         <span className="text-sm text-accent">{device.controls.fanSpeed}%</span>
                       </div>
                       <Slider
