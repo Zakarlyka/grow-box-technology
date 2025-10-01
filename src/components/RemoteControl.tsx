@@ -117,7 +117,7 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <span>{t('devices.power')}</span>
               <Switch 
                 checked={controls.power}
@@ -137,7 +137,7 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <span>{t('devices.lightControl')}</span>
             <Switch 
               checked={controls.light}
@@ -167,7 +167,7 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <span>{t('devices.fanControl')}</span>
             <Switch 
               checked={controls.fan}
@@ -197,7 +197,7 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <span>{t('devices.waterPump')}</span>
             <Switch 
               checked={controls.waterPump}
