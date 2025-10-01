@@ -58,6 +58,39 @@ export type Database = {
           },
         ]
       }
+      device_group_members: {
+        Row: {
+          added_at: string | null
+          device_id: string
+          group_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          device_id: string
+          group_id: string
+        }
+        Update: {
+          added_at?: string | null
+          device_id?: string
+          group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_group_members_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "device_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_groups: {
         Row: {
           color: string | null
@@ -87,6 +120,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      device_logs: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          id: string
+          metric: string
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          id?: string
+          metric: string
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          id?: string
+          metric?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_schedules: {
         Row: {
@@ -230,6 +295,47 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          device_id: string | null
+          enabled: boolean | null
+          id: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          device_id?: string | null
+          enabled?: boolean | null
+          id?: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          device_id?: string | null
+          enabled?: boolean | null
+          id?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -276,6 +382,56 @@ export type Database = {
             columns: ["developer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          action: string
+          created_at: string | null
+          days_of_week: number[] | null
+          device_id: string
+          enabled: boolean | null
+          end_time: string | null
+          id: string
+          name: string
+          repeat: string
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          days_of_week?: number[] | null
+          device_id: string
+          enabled?: boolean | null
+          end_time?: string | null
+          id?: string
+          name: string
+          repeat?: string
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          days_of_week?: number[] | null
+          device_id?: string
+          enabled?: boolean | null
+          end_time?: string | null
+          id?: string
+          name?: string
+          repeat?: string
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
             referencedColumns: ["id"]
           },
         ]
