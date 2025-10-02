@@ -10,9 +10,13 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, User, Settings, LogOut, Globe } from 'lucide-react';
+
+interface HeaderProps {
+  onSettingsClick?: () => void;
+}
 import logoAgroHogwards from '@/assets/logo-agro-hogwards-new.png';
 
-export function Header() {
+export function Header({ onSettingsClick }: HeaderProps = {}) {
   const { t, i18n } = useTranslation();
   const { user, signOut, profile } = useAuth();
 
@@ -89,7 +93,7 @@ export function Header() {
                 )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={onSettingsClick}>
                 <Settings className="w-4 h-4 mr-2" />
                 {t('navigation.settings')}
               </DropdownMenuItem>

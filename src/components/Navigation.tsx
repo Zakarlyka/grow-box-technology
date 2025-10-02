@@ -52,12 +52,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       roles: ['user', 'developer', 'admin']
     },
     {
-      id: 'settings',
-      label: t('navigation.settings'),
-      icon: SettingsIcon,
-      roles: ['user', 'developer', 'admin']
-    },
-    {
       id: 'developer',
       label: 'Розробник',
       icon: Code,
