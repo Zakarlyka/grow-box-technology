@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, User, Settings, LogOut, Globe } from 'lucide-react';
-import logoAgroHogwards from '@/assets/logo-agro-hogwards.png';
+import logoAgroHogwards from '@/assets/logo-agro-hogwards-new.png';
 
 export function Header() {
   const { t, i18n } = useTranslation();

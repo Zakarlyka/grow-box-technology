@@ -7,7 +7,7 @@ import { Devices } from '@/components/Devices';
 import { RemoteControlPage } from '@/pages/RemoteControlPage';
 import { DeviceManagement } from '@/components/DeviceManagement';
 import { AdvancedCharts } from '@/components/AdvancedCharts';
-import UserCabinet from '@/components/UserCabinet';
+import { Settings } from '@/pages/Settings';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
 
 const Index = () => {
@@ -26,11 +26,11 @@ const Index = () => {
         return <RemoteControlPage />;
       case 'analytics':
         return <AdvancedCharts />;
-      case 'cabinet':
-        return <UserCabinet />;
+      case 'settings':
+        return <Settings />;
       case 'developer':
         return profile?.role === 'developer' || profile?.role === 'admin' ? 
-          <DeveloperCabinet /> : <UserCabinet />;
+          <DeveloperCabinet /> : <Settings />;
       default:
         return <Dashboard />;
     }

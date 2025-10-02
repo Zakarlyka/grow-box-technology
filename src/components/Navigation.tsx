@@ -7,7 +7,7 @@ import {
   Cpu, 
   BarChart3, 
   Wifi, 
-  User, 
+  Settings as SettingsIcon, 
   Code
 } from 'lucide-react';
 
@@ -52,10 +52,10 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       roles: ['user', 'developer', 'admin']
     },
     {
-      id: 'cabinet',
-      label: 'Кабінет',
-      icon: User,
-      roles: ['user']
+      id: 'settings',
+      label: t('navigation.settings'),
+      icon: SettingsIcon,
+      roles: ['user', 'developer', 'admin']
     },
     {
       id: 'developer',

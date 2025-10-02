@@ -37,8 +37,9 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
     power: false,
     light: false,
     lightIntensity: [50],
+    lightDuration: [12],
     fan: false,
-    fanSpeed: [30],
+    fanDuration: [8],
     waterPump: false,
     pumpDuration: [10],
     heater: false,
@@ -155,6 +156,17 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
               disabled={!controls.light || !controls.power}
             />
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Тривалість: {controls.lightDuration[0]} год</label>
+            <Slider
+              value={controls.lightDuration}
+              onValueChange={(value) => handleControlChange('lightDuration', value)}
+              max={24}
+              min={1}
+              step={1}
+              disabled={!controls.light || !controls.power}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -176,11 +188,12 @@ export function RemoteControl({ deviceId, deviceName, onControlChange }: RemoteC
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('devices.speed')}: {controls.fanSpeed[0]}%</label>
+            <label className="text-sm font-medium">Тривалість: {controls.fanDuration[0]} год</label>
             <Slider
-              value={controls.fanSpeed}
-              onValueChange={(value) => handleControlChange('fanSpeed', value)}
-              max={100}
+              value={controls.fanDuration}
+              onValueChange={(value) => handleControlChange('fanDuration', value)}
+              max={24}
+              min={1}
               step={1}
               disabled={!controls.fan || !controls.power}
             />
