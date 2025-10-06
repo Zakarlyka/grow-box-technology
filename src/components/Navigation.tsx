@@ -29,14 +29,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       showIf: () => true
     },
     {
-      id: 'devices',
-      label: t('navigation.devices'),
-      icon: Cpu,
-      showIf: () => true
-    },
-    {
-      id: 'device-management',
-      label: 'Device Management',
+      id: 'my-devices',
+      label: 'Мої пристрої',
       icon: Cpu,
       showIf: () => true
     },
