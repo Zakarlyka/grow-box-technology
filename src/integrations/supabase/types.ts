@@ -483,15 +483,57 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          app_role: Database["public"]["Enums"]["app_role"] | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      secure_register_device: {
+        Args: {
+          p_device_id: string
+          p_location?: string
+          p_name: string
+          p_type: string
+        }
+        Returns: {
+          device_id: string
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "admin" | "superadmin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -618,6 +660,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "admin", "superadmin"],
+    },
   },
 } as const
