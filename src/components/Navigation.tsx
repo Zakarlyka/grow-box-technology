@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Wifi, 
   Settings as SettingsIcon, 
-  Code
+  Code,
+  ShieldCheck
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -18,50 +19,54 @@ interface NavigationProps {
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { isAdmin, isSuperAdmin } = useUserRole();
 
   const menuItems = [
     {
       id: 'dashboard',
       label: t('navigation.dashboard'),
       icon: LayoutDashboard,
-      roles: ['user', 'developer', 'admin']
+      showIf: () => true
     },
     {
       id: 'devices',
       label: t('navigation.devices'),
       icon: Cpu,
-      roles: ['user', 'developer', 'admin']
+      showIf: () => true
     },
     {
       id: 'device-management',
       label: 'Device Management',
       icon: Cpu,
-      roles: ['user', 'developer', 'admin']
+      showIf: () => true
     },
     {
       id: 'remote-control',
       label: t('navigation.remoteControl'),
       icon: Wifi,
-      roles: ['user', 'developer', 'admin']
+      showIf: () => true
     },
     {
       id: 'analytics',
       label: t('navigation.analytics'),
       icon: BarChart3,
-      roles: ['user', 'developer', 'admin']
+      showIf: () => true
     },
     {
       id: 'developer',
       label: 'Розробник',
       icon: Code,
-      roles: ['developer', 'admin']
+      showIf: () => isAdmin || isSuperAdmin
+    },
+    {
+      id: 'admin',
+      label: t('navigation.adminPanel'),
+      icon: ShieldCheck,
+      showIf: () => isAdmin || isSuperAdmin
     }
   ];
 
-  const visibleItems = menuItems.filter(item => 
-    item.roles.includes(profile?.role || 'user')
-  );
+  const visibleItems = menuItems.filter(item => item.showIf());
 
   return (
     <>

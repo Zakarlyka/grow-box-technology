@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Header } from '@/components/Header';
 import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
@@ -9,10 +10,11 @@ import { DeviceManagement } from '@/components/DeviceManagement';
 import { AdvancedCharts } from '@/components/AdvancedCharts';
 import { Settings } from '@/pages/Settings';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
+import { AdminPanel } from '@/components/AdminPanel';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { profile } = useAuth();
+  const { isAdmin, isSuperAdmin } = useUserRole();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -29,8 +31,9 @@ const Index = () => {
       case 'settings':
         return <Settings />;
       case 'developer':
-        return profile?.role === 'developer' || profile?.role === 'admin' ? 
-          <DeveloperCabinet /> : <Settings />;
+        return (isAdmin || isSuperAdmin) ? <DeveloperCabinet /> : <Dashboard />;
+      case 'admin':
+        return (isAdmin || isSuperAdmin) ? <AdminPanel /> : <Dashboard />;
       default:
         return <Dashboard />;
     }
