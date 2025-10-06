@@ -14,6 +14,8 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { deviceSchema, deviceSettingsSchema } from '@/lib/validations';
+import { z } from 'zod';
 import { 
   Plus, 
   Settings, 
@@ -137,13 +139,23 @@ export function DeviceManagement() {
   };
 
   const addDevice = async () => {
-    if (!newDevice.device_id || !newDevice.name) {
-      toast({
-        title: "Error",
-        description: "Device ID and name are required",
-        variant: "destructive",
+    // Validate input
+    try {
+      deviceSchema.parse({
+        device_id: newDevice.device_id,
+        name: newDevice.name,
+        type: newDevice.type,
+        location: newDevice.location,
       });
-      return;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setSaving(true);
@@ -175,7 +187,7 @@ export function DeviceManagement() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to add device",
         variant: "destructive",
       });
     } finally {
@@ -185,6 +197,20 @@ export function DeviceManagement() {
 
   const updateDeviceSettings = async () => {
     if (!selectedDevice) return;
+
+    // Validate settings
+    try {
+      deviceSettingsSchema.parse(deviceSettings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     setSaving(true);
     try {
@@ -198,20 +224,17 @@ export function DeviceManagement() {
 
       if (error) throw error;
 
-      setDevices(prev => prev.map(device => 
-        device.id === selectedDevice.id 
-          ? { ...device, configuration: deviceSettings }
-          : device
-      ));
-
       toast({
         title: "Success",
         description: "Device settings updated successfully",
       });
+      
+      setShowSettingsDialog(false);
+      fetchDevices();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update settings",
         variant: "destructive",
       });
     } finally {
