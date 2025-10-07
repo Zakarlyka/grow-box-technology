@@ -52,15 +52,107 @@ npm run dev
 npm run build
 ```
 
+## Підключення ESP8266/ESP32
+
+### 1. Налаштування Wi-Fi порталу на ESP
+
+Після підключення до Wi-Fi порталу ESP8266, виконайте POST-запит до `/setup` API:
+
+```cpp
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
+
+const char* setupEndpoint = "https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/setup";
+const char* authToken = "YOUR_USER_JWT_TOKEN"; // Отримати після авторизації
+const char* deviceKey = "YOUR_SECURE_KEY_MIN_16_CHARS"; // Мінімум 16 символів
+
+void setupDevice() {
+  WiFiClientSecure client;
+  client.setInsecure(); // Для тестування, використовуйте сертифікати у продакшн
+  
+  HTTPClient http;
+  http.begin(client, setupEndpoint);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", String("Bearer ") + authToken);
+  
+  StaticJsonDocument<256> doc;
+  doc["device_id"] = "ESP-" + String(ESP.getChipId(), HEX);
+  doc["key"] = deviceKey;
+  doc["name"] = "My Grow Box";
+  doc["type"] = "grow_box";
+  doc["location"] = "Room 1";
+  
+  String payload;
+  serializeJson(doc, payload);
+  
+  int httpCode = http.POST(payload);
+  
+  if (httpCode == 201) {
+    Serial.println("Device registered successfully!");
+    // Зберегти device_id в EEPROM для наступних запитів
+  } else if (httpCode == 200) {
+    Serial.println("Device updated!");
+  } else {
+    Serial.printf("Setup failed: %d\n", httpCode);
+    Serial.println(http.getString());
+  }
+  
+  http.end();
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Підключення до WiFi
+  WiFi.begin("your-ssid", "your-password");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected!");
+  
+  // Реєстрація пристрою
+  setupDevice();
+}
+```
+
+### 2. Отримання JWT токена
+
+Для автентифікації запитів використовуйте JWT токен користувача:
+
+1. Увійдіть у веб-додаток
+2. У Developer Tools → Application → Local Storage знайдіть `sb-<project>-auth-token`
+3. Використайте `access_token` для авторизації запитів з ESP
+
+**Важливо:** У продакшн-режимі використовуйте безпечний спосіб зберігання токенів!
+
+### 3. Генерація Device ID через QR-код
+
+1. У Dashboard натисніть **"Підключити новий"**
+2. Скануйте QR-код з ESP8266 Wi-Fi порталу
+3. Або скопіюйте Device ID вручну
+4. Пристрій автоматично з'явиться у списку після успішної реєстрації
+
+### 4. Realtime оновлення статусу
+
+Після реєстрації пристрою:
+- ✅ Dashboard автоматично отримує нові пристрої через Supabase Realtime
+- ✅ Статус `online`/`offline` оновлюється у реальному часі
+- ✅ Показується час останньої активності
+
+---
+
 ## Наступні кроки
 
 ### Backend інтеграція
 Для повної функціональності потрібно підключити **Supabase**:
 
-- **Authentication** (email/password)
-- **PostgreSQL** для зберігання користувачів та налаштувань
-- **Real-time subscriptions** для живих даних
-- **Edge Functions** для MQTT інтеграції
+- ✅ **Authentication** (email/password)
+- ✅ **PostgreSQL** для зберігання користувачів та налаштувань
+- ✅ **Real-time subscriptions** для живих даних
+- ✅ **Edge Functions** для реєстрації пристроїв (`/setup`)
 
 ### MQTT інтеграція
 ```javascript
