@@ -284,6 +284,49 @@ npm run build
 # Завантажити dist/ папку
 ```
 
+## 🔐 Безпека (Row-Level Security)
+
+### Увімкнення RLS
+
+Row-Level Security (RLS) вже налаштовано для всіх таблиць у проекті. Якщо ви створюєте нові таблиці або хочете перевірити поточні налаштування:
+
+1. Відкрийте [Supabase Dashboard](https://supabase.com/dashboard)
+2. Перейдіть до **Table Editor**
+3. Виберіть таблицю (наприклад, `devices` або `device_logs`)
+4. Перейдіть на вкладку **Policies**
+5. Переконайтеся, що RLS увімкнено (зелена позначка "RLS enabled")
+
+### Поточні RLS політики
+
+#### Таблиця `devices`
+- **"Users manage their devices"** (ALL) - Користувачі можуть керувати лише своїми пристроями
+  - USING: `user_id = auth.uid()`
+  - WITH CHECK: `user_id = auth.uid()`
+
+#### Таблиця `device_logs`
+- **"Users view their logs"** (ALL) - Користувачі бачать логи лише своїх пристроїв
+  - USING: `device_id IN (SELECT id FROM devices WHERE user_id = auth.uid())`
+  - WITH CHECK: `device_id IN (SELECT id FROM devices WHERE user_id = auth.uid())`
+
+### Edge Functions і автентифікація
+
+Всі Edge Functions (`/setup`, `/device-api`) використовують `supabase.auth.getUser()` для перевірки автентифікації:
+
+```typescript
+const { data: { user }, error: authError } = await supabase.auth.getUser(
+  authHeader.replace('Bearer ', '')
+);
+
+if (authError || !user) {
+  return new Response(
+    JSON.stringify({ error: 'Invalid authorization token' }),
+    { status: 401 }
+  );
+}
+```
+
+Якщо JWT токен відсутній або недійсний, функція поверне **401 Unauthorized**.
+
 ## Ліцензія
 
 MIT License - дивіться [LICENSE](LICENSE) для деталей.
