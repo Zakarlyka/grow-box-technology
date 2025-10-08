@@ -54,10 +54,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create authenticated Supabase client
+    // Create authenticated Supabase client with service role key
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        db: { schema: 'public' },
+        auth: { persistSession: false }
+      }
     );
 
     // Check if device exists with this device_id
@@ -66,7 +70,7 @@ Deno.serve(async (req) => {
       .select('id, user_id, status')
       .eq('device_id', deviceId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
       console.error('Error checking device:', checkError);
