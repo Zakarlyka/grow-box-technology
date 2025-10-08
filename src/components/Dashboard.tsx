@@ -244,7 +244,7 @@ export function Dashboard() {
                 <>
                   <div className="p-4 bg-white rounded-lg">
                     <QRCodeSVG 
-                      value={generatedDeviceId} 
+                      value={`http://192.168.4.1/?deviceId=${generatedDeviceId}`}
                       size={200}
                       level="H"
                       includeMargin={true}
@@ -257,13 +257,51 @@ export function Dashboard() {
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p className="font-semibold">Інструкція:</p>
                       <ol className="text-left space-y-1 list-decimal list-inside">
-                        <li>Підключіться до Wi-Fi порталу ESP8266</li>
-                        <li>Скануйте QR-код камерою пристрою</li>
-                        <li>Або введіть Device ID вручну</li>
-                        <li>Пристрій автоматично з'явиться тут</li>
+                        <li>Скануйте QR-код телефоном</li>
+                        <li>Введіть отриманий код на сторінці Arduino</li>
+                        <li>Підключіть пристрій до Wi-Fi</li>
+                        <li>Натисніть "Підтвердити підключення" нижче</li>
                       </ol>
                     </div>
                   </div>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) {
+                          toast.error('Немає активної сесії');
+                          return;
+                        }
+
+                        const response = await fetch(
+                          'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
+                          {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({ deviceId: generatedDeviceId }),
+                          }
+                        );
+
+                        if (response.ok) {
+                          toast.success('Підключення підтверджено!');
+                          setShowQRDialog(false);
+                        } else {
+                          const error = await response.json();
+                          toast.error(error.error || 'Помилка підтвердження');
+                        }
+                      } catch (error) {
+                        console.error('Confirm error:', error);
+                        toast.error('Помилка з\'єднання з сервером');
+                      }
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <Wifi className="w-4 h-4" />
+                    Підтвердити підключення
+                  </Button>
                 </>
               )}
             </div>
