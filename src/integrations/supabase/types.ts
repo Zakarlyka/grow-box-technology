@@ -153,6 +153,27 @@ export type Database = {
           },
         ]
       }
+      device_pairing_temp: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          pairing_code: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          pairing_code: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          pairing_code?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       device_schedules: {
         Row: {
           control_name: string
@@ -509,6 +530,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_pairing_records: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
