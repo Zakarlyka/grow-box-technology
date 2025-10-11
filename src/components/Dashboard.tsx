@@ -260,7 +260,7 @@ export function Dashboard() {
           <DialogTrigger asChild>
             <Button onClick={generateDeviceId} className="gap-2">
               <Plus className="w-4 h-4" />
-              Підключити новий
+              Додати новий пристрій
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
