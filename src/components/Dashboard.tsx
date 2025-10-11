@@ -179,12 +179,43 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, [devices.length]);
 
-  const generateDeviceId = () => {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    const deviceId = `ESP-${timestamp}-${random}`.toUpperCase();
-    setGeneratedDeviceId(deviceId);
-    setShowQRDialog(true);
+  const generateDeviceId = async () => {
+    if (!user) {
+      toast.error('Увійдіть в систему');
+      return;
+    }
+
+    // Генерація унікального deviceId
+    const random1 = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const random2 = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const deviceId = `ESP-${random1}-${random2}`;
+    
+    // Генерація коду парування
+    const pairingCode = Math.random().toString(36).substring(2, 12).toUpperCase();
+    
+    try {
+      // Збереження в device_pairing_temp
+      const { error } = await supabase
+        .from('device_pairing_temp')
+        .insert({
+          device_id: deviceId,
+          pairing_code: pairingCode,
+          user_id: user.id,
+        });
+
+      if (error) {
+        console.error('Error saving pairing temp:', error);
+        toast.error('Помилка збереження коду парування');
+        return;
+      }
+
+      setGeneratedDeviceId(deviceId);
+      setShowQRDialog(true);
+      toast.success('QR-код згенеровано!');
+    } catch (error) {
+      console.error('Error in generateDeviceId:', error);
+      toast.error('Помилка генерації коду');
+    }
   };
 
   const onlineDevices = devices.filter(d => d.status === 'online').length;
@@ -251,16 +282,33 @@ export function Dashboard() {
                     />
                   </div>
                   <div className="text-center space-y-2">
-                    <p className="text-sm font-mono bg-muted px-3 py-2 rounded">
-                      {generatedDeviceId}
-                    </p>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p className="font-semibold">Інструкція:</p>
-                      <ol className="text-left space-y-1 list-decimal list-inside">
-                        <li>Скануйте QR-код телефоном</li>
-                        <li>Введіть отриманий код на сторінці Arduino</li>
-                        <li>Підключіть пристрій до Wi-Fi</li>
-                        <li>Натисніть "Підтвердити підключення" нижче</li>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Код пристрою:</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-mono bg-muted px-3 py-2 rounded flex-1">
+                          {generatedDeviceId}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedDeviceId);
+                            toast.success('Код скопійовано!');
+                          }}
+                        >
+                          Копіювати
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-2 text-left bg-muted/50 p-3 rounded">
+                      <p className="font-semibold text-foreground">📱 Інструкція підключення:</p>
+                      <ol className="space-y-1 list-decimal list-inside">
+                        <li>Скануйте QR-код телефоном або скопіюйте код вище</li>
+                        <li>Підключіться до Wi-Fi мережі <strong>GrowBox_Setup</strong></li>
+                        <li>Введіть код на сторінці налаштувань (відкриється автоматично)</li>
+                        <li>Оберіть вашу домашню Wi-Fi мережу та введіть пароль</li>
+                        <li>Натисніть "Зберегти" на пристрої</li>
+                        <li>Зачекайте 10-15 секунд та натисніть кнопку нижче</li>
                       </ol>
                     </div>
                   </div>

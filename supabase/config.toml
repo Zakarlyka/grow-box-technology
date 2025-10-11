@@ -2,3 +2,12 @@ project_id = "ychnmaaximnoxvwnzrgs"
 
 [functions.setup]
 verify_jwt = false
+
+[functions.confirm-device]
+verify_jwt = true
+
+[functions.device-api]
+verify_jwt = false
+
+[functions.notification-system]
+verify_jwt = true

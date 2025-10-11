@@ -8,7 +8,6 @@ const corsHeaders = {
 
 interface SetupRequest {
   device_id: string;
-  key: string;
   name?: string;
   type?: string;
   location?: string;
@@ -21,71 +20,66 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get authenticated user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      console.error('Authentication error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authorization token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    // Використовуємо service role key для доступу до всіх таблиць
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      db: { schema: 'public' },
+      auth: { persistSession: false }
+    });
 
     const body: SetupRequest = await req.json();
-    const { device_id, key, name, type, location } = body;
+    const { device_id, name, type, location } = body;
 
-    if (!device_id || !key) {
+    if (!device_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing device_id or key' }),
+        JSON.stringify({ error: 'Missing device_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate key format (simple validation - you can enhance this)
-    if (key.length < 16) {
+    console.log(`Setting up device ${device_id}`);
+
+    // Знаходимо запис в device_pairing_temp для отримання user_id
+    const { data: pairingData, error: pairingError } = await supabase
+      .from('device_pairing_temp')
+      .select('user_id, pairing_code')
+      .eq('device_id', device_id)
+      .maybeSingle();
+
+    if (pairingError) {
+      console.error('Error checking pairing temp:', pairingError);
       return new Response(
-        JSON.stringify({ error: 'Invalid key' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Database error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Setting up device ${device_id} for user ${user.id}`);
+    if (!pairingData || !pairingData.user_id) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Device ID not found. Please generate QR code in dashboard first.',
+          hint: 'The device must be registered through the web dashboard before setup.'
+        }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Check if device already exists
+    const userId = pairingData.user_id;
+
+    // Перевіряємо чи пристрій вже існує
     const { data: existingDevice } = await supabase
       .from('devices')
       .select('id, user_id')
       .eq('device_id', device_id)
-      .single();
+      .maybeSingle();
 
     if (existingDevice) {
-      // Device exists - check ownership
-      if (existingDevice.user_id !== user.id) {
-        return new Response(
-          JSON.stringify({ error: 'Device already registered to another user' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // Update existing device
+      // Оновлюємо існуючий пристрій
       const { error: updateError } = await supabase
         .from('devices')
         .update({
-          name: name || `Device ${device_id.slice(-6)}`,
+          name: name || `GrowBox ${device_id.slice(-6)}`,
           type: type || 'grow_box',
           location: location || null,
           status: 'online',
@@ -102,19 +96,25 @@ serve(async (req) => {
         );
       }
 
+      // Видаляємо запис з device_pairing_temp
+      await supabase
+        .from('device_pairing_temp')
+        .delete()
+        .eq('device_id', device_id);
+
       return new Response(
         JSON.stringify({ success: true, message: 'Device updated successfully' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create new device
+    // Створюємо новий пристрій
     const { data: newDevice, error: insertError } = await supabase
       .from('devices')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         device_id: device_id,
-        name: name || `Device ${device_id.slice(-6)}`,
+        name: name || `GrowBox ${device_id.slice(-6)}`,
         type: type || 'grow_box',
         location: location || null,
         status: 'online',
@@ -132,6 +132,12 @@ serve(async (req) => {
     }
 
     console.log('Device registered successfully:', newDevice.id);
+
+    // Видаляємо запис з device_pairing_temp
+    await supabase
+      .from('device_pairing_temp')
+      .delete()
+      .eq('device_id', device_id);
 
     return new Response(
       JSON.stringify({ 
