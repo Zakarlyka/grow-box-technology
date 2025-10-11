@@ -247,7 +247,7 @@ export type Database = {
           id?: string
           last_seen?: string | null
           location?: string | null
-          name: string
+          name?: string
           status?: string
           type?: string
           updated_at?: string
