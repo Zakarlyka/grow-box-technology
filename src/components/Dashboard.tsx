@@ -47,6 +47,33 @@ export function Dashboard() {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [generatedDeviceId, setGeneratedDeviceId] = useState('');
+  const [supabaseConnected, setSupabaseConnected] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+
+  // Перевірка підключення до Supabase
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          setSupabaseConnected(false);
+          toast.error('Немає з\'єднання з Supabase');
+        } else if (session) {
+          setSupabaseConnected(true);
+        } else {
+          setSupabaseConnected(false);
+        }
+      } catch (error) {
+        setSupabaseConnected(false);
+        console.error('Supabase connection check error:', error);
+      }
+    };
+
+    checkSupabaseConnection();
+    const interval = setInterval(checkSupabaseConnection, 30000); // Перевірка кожні 30 секунд
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Завантаження пристроїв з бази даних
   useEffect(() => {
@@ -314,41 +341,70 @@ export function Dashboard() {
                   </div>
                   <Button 
                     onClick={async () => {
-                      try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (!session) {
-                          toast.error('Немає активної сесії');
-                          return;
-                        }
-
-                        const response = await fetch(
-                          'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
-                          {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${session.access_token}`,
-                            },
-                            body: JSON.stringify({ deviceId: generatedDeviceId }),
+                      if (isCheckingConnection) return;
+                      
+                      setIsCheckingConnection(true);
+                      
+                      const retryConnection = async (retryCount = 0): Promise<void> => {
+                        try {
+                          const { data: { session } } = await supabase.auth.getSession();
+                          if (!session) {
+                            toast.error('Немає активної сесії');
+                            setIsCheckingConnection(false);
+                            return;
                           }
-                        );
 
-                        if (response.ok) {
-                          toast.success('Підключення підтверджено!');
-                          setShowQRDialog(false);
-                        } else {
-                          const error = await response.json();
-                          toast.error(error.error || 'Помилка підтвердження');
+                          const response = await fetch(
+                            'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`,
+                              },
+                              body: JSON.stringify({ deviceId: generatedDeviceId }),
+                            }
+                          );
+
+                          if (response.ok) {
+                            toast.success('Підключення підтверджено!');
+                            setShowQRDialog(false);
+                            setIsCheckingConnection(false);
+                          } else {
+                            const error = await response.json();
+                            toast.error(error.error || 'Помилка підтвердження');
+                            setIsCheckingConnection(false);
+                          }
+                        } catch (error) {
+                          console.error('Confirm error:', error);
+                          
+                          // Перевірка на CORS або мережеві помилки
+                          if (error instanceof TypeError || 
+                              (error as any).message?.includes('Failed to fetch') ||
+                              (error as any).message?.includes('ERR_NAME_NOT_RESOLVED') ||
+                              (error as any).message?.includes('CORS')) {
+                            
+                            if (retryCount < 3) {
+                              toast.error(`Перевір з'єднання з Supabase. Спроба ${retryCount + 1}/3 через 5 сек...`);
+                              setTimeout(() => retryConnection(retryCount + 1), 5000);
+                            } else {
+                              toast.error('Перевір з\'єднання з Supabase. Очисти кеш браузера та спробуй знову.');
+                              setIsCheckingConnection(false);
+                            }
+                          } else {
+                            toast.error('Помилка з\'єднання з сервером');
+                            setIsCheckingConnection(false);
+                          }
                         }
-                      } catch (error) {
-                        console.error('Confirm error:', error);
-                        toast.error('Помилка з\'єднання з сервером');
-                      }
+                      };
+
+                      await retryConnection();
                     }}
                     className="w-full gap-2"
+                    disabled={isCheckingConnection}
                   >
                     <Wifi className="w-4 h-4" />
-                    Підтвердити підключення
+                    {isCheckingConnection ? 'Перевірка...' : 'Підтвердити підключення'}
                   </Button>
                 </>
               )}
@@ -376,9 +432,17 @@ export function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Реалтайм-моніторинг через Supabase Realtime
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Реалтайм-моніторинг через Supabase Realtime
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <div className={`w-2 h-2 rounded-full ${supabaseConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className={supabaseConnected ? 'text-green-600' : 'text-red-600'}>
+                {supabaseConnected ? 'Підключено до Supabase' : 'Немає з\'єднання з Supabase'}
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
