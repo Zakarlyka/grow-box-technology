@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface ConfirmRequest {
   deviceId: string;
+  userId?: string;
 }
 
 Deno.serve(async (req) => {
@@ -54,7 +55,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create authenticated Supabase client with service role key
+    console.log(`[confirm-device] Checking device: ${deviceId} for user: ${user.id}`);
+
+    // Create authenticated Supabase client with service role key to bypass RLS
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -64,57 +67,88 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Check if device exists with this device_id
-    const { data: existingDevice, error: checkError } = await supabase
+    // Check if device exists with this device_id and belongs to authenticated user
+    const { data: device, error: checkError } = await supabase
       .from('devices')
-      .select('id, user_id, status')
+      .select('id, user_id, device_id, name, type, status, last_seen')
       .eq('device_id', deviceId)
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
       console.error('Error checking device:', checkError);
       return new Response(
-        JSON.stringify({ error: 'Database error' }),
+        JSON.stringify({ error: 'Database error', details: checkError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (existingDevice) {
-      // Update existing device status to online
-      const { error: updateError } = await supabase
-        .from('devices')
-        .update({ 
-          status: 'online',
-          last_seen: new Date().toISOString()
-        })
-        .eq('id', existingDevice.id);
-
-      if (updateError) {
-        console.error('Error updating device:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to update device' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+    // Device not found
+    if (!device) {
+      console.log(`[confirm-device] Device not found: ${deviceId}`);
       return new Response(
         JSON.stringify({ 
-          message: 'Device confirmed and set to online',
-          deviceId: existingDevice.id
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      // Device not found - it should be created first via /setup endpoint
-      return new Response(
-        JSON.stringify({ 
-          error: 'Device not found. Please register the device first via /setup endpoint.',
-          hint: 'Use the setup endpoint from your ESP device to register before confirming.'
+          status: 'not_found',
+          error: 'Device not found. Register it first via /setup endpoint.',
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Check device_logs for recent activity (last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: lastLog, error: logError } = await supabase
+      .from('device_logs')
+      .select('*')
+      .eq('device_id', device.id)
+      .gte('created_at', fiveMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (logError) {
+      console.error('Error checking device logs:', logError);
+    }
+
+    // Determine device status
+    const isConnected = lastLog !== null;
+    const newStatus = isConnected ? 'online' : 'offline';
+
+    console.log(`[confirm-device] Device ${deviceId} status: ${newStatus}, has recent log: ${!!lastLog}`);
+
+    // Update device status and last_seen
+    const { error: updateError } = await supabase
+      .from('devices')
+      .update({ 
+        status: newStatus,
+        last_seen: new Date().toISOString()
+      })
+      .eq('id', device.id);
+
+    if (updateError) {
+      console.error('Error updating device:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to update device status', details: updateError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Return device status with optional last log
+    return new Response(
+      JSON.stringify({ 
+        status: isConnected ? 'connected' : 'offline',
+        device: {
+          id: device.id,
+          device_id: device.device_id,
+          name: device.name,
+          type: device.type,
+          status: newStatus,
+          last_seen: device.last_seen
+        },
+        last_log: lastLog || null
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in confirm-device function:', error);
