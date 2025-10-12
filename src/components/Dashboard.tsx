@@ -327,16 +327,11 @@ export function Dashboard() {
                         </Button>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground space-y-2 text-left bg-muted/50 p-3 rounded">
+                    <div className="text-sm text-muted-foreground space-y-2 text-left bg-gray-100 dark:bg-muted/50 p-4 rounded-lg">
                       <p className="font-semibold text-foreground">📱 Інструкція підключення:</p>
-                      <ol className="space-y-1 list-decimal list-inside">
-                        <li>Скануйте QR-код телефоном або скопіюйте код вище</li>
-                        <li>Підключіться до Wi-Fi мережі <strong>GrowBox_Setup</strong></li>
-                        <li>Введіть код на сторінці налаштувань (відкриється автоматично)</li>
-                        <li>Оберіть вашу домашню Wi-Fi мережу та введіть пароль</li>
-                        <li>Натисніть "Зберегти" на пристрої</li>
-                        <li>Зачекайте 10-15 секунд та натисніть кнопку нижче</li>
-                      </ol>
+                      <p className="text-xs">
+                        Скануй QR-код або скопіюй deviceId. Підключись до GrowBox_Setup, обери мережу, введи пароль, збери. Потім натисни "Перевірити підключення".
+                      </p>
                     </div>
                   </div>
                   <Button 
