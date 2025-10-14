@@ -1,119 +1,139 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Thermometer, 
   Droplets, 
   Cpu,
   Activity,
-  ArrowUpDown,
   Plus,
   Wifi,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart-simple';
-import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-interface SensorData {
-  time: string;
-  [key: string]: number | string;
-}
-
-interface DeviceStatus {
+interface Device {
   id: string;
+  device_id: string;
   name: string;
   type: string;
   status: 'online' | 'offline';
-  temperature?: number;
-  humidity?: number;
-  lastSeen: Date;
-  connectedAt: Date;
+  last_seen: string;
+  created_at: string;
 }
 
-type SortOption = 'name' | 'type' | 'date' | 'age';
+interface DeviceLog {
+  id: string;
+  device_id: string;
+  metric: string;
+  value: number;
+  created_at: string;
+}
+
+interface SensorData {
+  time: string;
+  temperature?: number;
+  humidity?: number;
+}
 
 export function Dashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [deviceLogs, setDeviceLogs] = useState<DeviceLog[]>([]);
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
-  const [devices, setDevices] = useState<DeviceStatus[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('name');
-  const [showQRDialog, setShowQRDialog] = useState(false);
-  const [generatedDeviceId, setGeneratedDeviceId] = useState('');
-  const [supabaseConnected, setSupabaseConnected] = useState(false);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Перевірка підключення до Supabase
-  useEffect(() => {
-    const checkSupabaseConnection = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          setSupabaseConnected(false);
-          toast.error('Немає з\'єднання з Supabase');
-        } else if (session) {
-          setSupabaseConnected(true);
-        } else {
-          setSupabaseConnected(false);
-        }
-      } catch (error) {
-        setSupabaseConnected(false);
-        console.error('Supabase connection check error:', error);
-      }
-    };
-
-    checkSupabaseConnection();
-    const interval = setInterval(checkSupabaseConnection, 30000); // Перевірка кожні 30 секунд
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Завантаження пристроїв з бази даних
-  useEffect(() => {
+  // Завантаження пристроїв
+  const fetchDevices = async () => {
     if (!user) return;
 
-    const fetchDevices = async () => {
-      const { data, error } = await supabase
-        .from('devices')
-        .select('*')
-        .eq('user_id', user.id);
+    const { data, error } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('last_seen', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching devices:', error);
-        toast.error('Помилка завантаження пристроїв');
-        return;
+    if (error) {
+      console.error('Error fetching devices:', error);
+      toast.error('Помилка завантаження пристроїв');
+      return;
+    }
+
+    if (data) {
+      setDevices(data as Device[]);
+      if (data.length > 0 && !selectedDeviceId) {
+        setSelectedDeviceId(data[0].id);
       }
+    }
+    setLoading(false);
+  };
 
-      if (data) {
-        const mappedDevices: DeviceStatus[] = data.map(d => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          status: d.status as 'online' | 'offline',
-          lastSeen: new Date(d.last_seen || d.created_at),
-          connectedAt: new Date(d.created_at),
-          temperature: undefined,
-          humidity: undefined,
-        }));
-        setDevices(mappedDevices);
-      }
-    };
+  // Завантаження логів для вибраного пристрою
+  const fetchDeviceLogs = async () => {
+    if (!selectedDeviceId) return;
 
+    const { data, error } = await supabase
+      .from('device_logs')
+      .select('*')
+      .eq('device_id', selectedDeviceId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Error fetching device logs:', error);
+      return;
+    }
+
+    if (data) {
+      setDeviceLogs(data);
+      
+      // Підготовка даних для графіка
+      const chartData: SensorData[] = data
+        .reverse()
+        .map(log => ({
+          time: new Date(log.created_at).toLocaleTimeString('uk-UA', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          [log.metric]: log.value,
+        }))
+        .reduce((acc: SensorData[], curr) => {
+          const existing = acc.find(item => item.time === curr.time);
+          if (existing) {
+            Object.assign(existing, curr);
+          } else {
+            acc.push(curr);
+          }
+          return acc;
+        }, []);
+
+      setSensorData(chartData);
+    }
+  };
+
+  useEffect(() => {
     fetchDevices();
   }, [user]);
 
-  // Підписка на реалтайм-зміни пристроїв
+  useEffect(() => {
+    fetchDeviceLogs();
+  }, [selectedDeviceId]);
+
+  // Realtime підписка на зміни пристроїв
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
+    const devicesChannel = supabase
       .channel('devices-changes')
       .on(
         'postgres_changes',
@@ -123,156 +143,68 @@ export function Dashboard() {
           table: 'devices',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          console.log('Device change:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newDevice = payload.new as any;
-            setDevices(prev => [...prev, {
-              id: newDevice.id,
-              name: newDevice.name,
-              type: newDevice.type,
-              status: newDevice.status as 'online' | 'offline',
-              lastSeen: new Date(newDevice.last_seen || newDevice.created_at),
-              connectedAt: new Date(newDevice.created_at),
-              temperature: undefined,
-              humidity: undefined,
-            }]);
-            toast.success(`Пристрій "${newDevice.name}" підключено!`);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedDevice = payload.new as any;
-            setDevices(prev => prev.map(d => 
-              d.id === updatedDevice.id 
-                ? {
-                    ...d,
-                    name: updatedDevice.name,
-                    type: updatedDevice.type,
-                    status: updatedDevice.status as 'online' | 'offline',
-                    lastSeen: new Date(updatedDevice.last_seen || updatedDevice.updated_at),
-                  }
-                : d
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            const deletedDevice = payload.old as any;
-            setDevices(prev => prev.filter(d => d.id !== deletedDevice.id));
-            toast.info('Пристрій видалено');
-          }
+        () => {
+          fetchDevices();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(devicesChannel);
     };
   }, [user]);
 
-  // Генерація симуляційних даних телеметрії
+  // Realtime підписка на device_logs
   useEffect(() => {
-    const generateData = () => {
-      const now = new Date();
-      const newData: SensorData[] = [];
-      
-      for (let i = 23; i >= 0; i--) {
-        const time = new Date(now.getTime() - i * 60 * 60 * 1000);
-        const dataPoint: SensorData = {
-          time: time.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
-        };
-        
-        // Generate data for each device
-        devices.forEach((device) => {
-          if (device.status === 'online') {
-            dataPoint[`${device.id}_temp`] = 24 + (Math.random() - 0.5) * 4;
-            dataPoint[`${device.id}_humidity`] = 65 + (Math.random() - 0.5) * 10;
-          }
-        });
-        
-        newData.push(dataPoint);
-      }
-      
-      setSensorData(newData);
-    };
+    if (!selectedDeviceId) return;
 
-    generateData();
-    
+    const logsChannel = supabase
+      .channel('device-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'device_logs',
+          filter: `device_id=eq.${selectedDeviceId}`,
+        },
+        () => {
+          fetchDeviceLogs();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(logsChannel);
+    };
+  }, [selectedDeviceId]);
+
+  // Періодичний refetch
+  useEffect(() => {
     const interval = setInterval(() => {
-      setDevices(prev => prev.map(device => ({
-        ...device,
-        temperature: device.status === 'online' ? 24 + (Math.random() - 0.5) * 2 : device.temperature,
-        humidity: device.status === 'online' ? Math.max(0, Math.min(100, 65 + (Math.random() - 0.5) * 5)) : device.humidity,
-      })));
-      generateData();
-    }, 5000);
+      fetchDevices();
+      if (selectedDeviceId) {
+        fetchDeviceLogs();
+      }
+    }, 30000); // Кожні 30 секунд
 
     return () => clearInterval(interval);
-  }, [devices.length]);
-
-  const generateDeviceId = async () => {
-    if (!user) {
-      toast.error('Увійдіть в систему');
-      return;
-    }
-
-    // Генерація унікального deviceId
-    const random1 = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const random2 = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const deviceId = `ESP-${random1}-${random2}`;
-    
-    // Генерація коду парування
-    const pairingCode = Math.random().toString(36).substring(2, 12).toUpperCase();
-    
-    try {
-      // Збереження в device_pairing_temp
-      const { error } = await supabase
-        .from('device_pairing_temp')
-        .insert({
-          device_id: deviceId,
-          pairing_code: pairingCode,
-          user_id: user.id,
-        });
-
-      if (error) {
-        console.error('Error saving pairing temp:', error);
-        toast.error('Помилка збереження коду парування');
-        return;
-      }
-
-      setGeneratedDeviceId(deviceId);
-      setShowQRDialog(true);
-      toast.success('QR-код згенеровано!');
-    } catch (error) {
-      console.error('Error in generateDeviceId:', error);
-      toast.error('Помилка генерації коду');
-    }
-  };
+  }, [selectedDeviceId]);
 
   const onlineDevices = devices.filter(d => d.status === 'online').length;
-  const totalDevices = devices.length;
+  const selectedDevice = devices.find(d => d.id === selectedDeviceId);
 
-  const sortedDevices = useMemo(() => {
-    const sorted = [...devices];
-    switch (sortBy) {
-      case 'name':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case 'type':
-        return sorted.sort((a, b) => a.type.localeCompare(b.type));
-      case 'date':
-        return sorted.sort((a, b) => b.connectedAt.getTime() - a.connectedAt.getTime());
-      case 'age':
-        return sorted.sort((a, b) => a.connectedAt.getTime() - b.connectedAt.getTime());
-      default:
-        return sorted;
-    }
-  }, [devices, sortBy]);
-
-  const deviceColors = [
-    { temp: 'hsl(var(--primary))', humidity: 'hsl(var(--accent))' },
-    { temp: 'hsl(var(--success))', humidity: 'hsl(var(--warning))' },
-    { temp: '#8b5cf6', humidity: '#ec4899' },
-  ];
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
-      {/* Заголовок з кнопкою підключення */}
+      {/* Заголовок */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -283,132 +215,13 @@ export function Dashboard() {
           </p>
         </div>
         
-        <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={generateDeviceId} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Додати новий пристрій
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Wifi className="w-5 h-5" />
-                Підключення ESP8266
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center space-y-4 py-4">
-              {generatedDeviceId && (
-                <>
-                  <div className="p-4 bg-white rounded-lg">
-                    <QRCodeSVG 
-                      value={`http://192.168.4.1/?deviceId=${generatedDeviceId}`}
-                      size={200}
-                      level="H"
-                      includeMargin={true}
-                    />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Код пристрою:</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-mono bg-muted px-3 py-2 rounded flex-1">
-                          {generatedDeviceId}
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            navigator.clipboard.writeText(generatedDeviceId);
-                            toast.success('Код скопійовано!');
-                          }}
-                        >
-                          Копіювати
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-2 text-left bg-gray-100 dark:bg-muted/50 p-4 rounded-lg">
-                      <p className="font-semibold text-foreground">📱 Інструкція підключення:</p>
-                      <p className="text-xs">
-                        Скануй QR-код або скопіюй deviceId. Підключись до GrowBox_Setup, обери мережу, введи пароль, збери. Потім натисни "Перевірити підключення".
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={async () => {
-                      if (isCheckingConnection) return;
-                      
-                      setIsCheckingConnection(true);
-                      
-                      const retryConnection = async (retryCount = 0): Promise<void> => {
-                        try {
-                          const { data: { session } } = await supabase.auth.getSession();
-                          if (!session) {
-                            toast.error('Немає активної сесії');
-                            setIsCheckingConnection(false);
-                            return;
-                          }
-
-                          const response = await fetch(
-                            'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${session.access_token}`,
-                              },
-                              body: JSON.stringify({ deviceId: generatedDeviceId }),
-                            }
-                          );
-
-                          if (response.ok) {
-                            toast.success('Підключення підтверджено!');
-                            setShowQRDialog(false);
-                            setIsCheckingConnection(false);
-                          } else {
-                            const error = await response.json();
-                            toast.error(error.error || 'Помилка підтвердження');
-                            setIsCheckingConnection(false);
-                          }
-                        } catch (error) {
-                          console.error('Confirm error:', error);
-                          
-                          // Перевірка на CORS або мережеві помилки
-                          if (error instanceof TypeError || 
-                              (error as any).message?.includes('Failed to fetch') ||
-                              (error as any).message?.includes('ERR_NAME_NOT_RESOLVED') ||
-                              (error as any).message?.includes('CORS')) {
-                            
-                            if (retryCount < 3) {
-                              toast.error(`Перевір з'єднання з Supabase. Спроба ${retryCount + 1}/3 через 5 сек...`);
-                              setTimeout(() => retryConnection(retryCount + 1), 5000);
-                            } else {
-                              toast.error('Перевір з\'єднання з Supabase. Очисти кеш браузера та спробуй знову.');
-                              setIsCheckingConnection(false);
-                            }
-                          } else {
-                            toast.error('Помилка з\'єднання з сервером');
-                            setIsCheckingConnection(false);
-                          }
-                        }
-                      };
-
-                      await retryConnection();
-                    }}
-                    className="w-full gap-2"
-                    disabled={isCheckingConnection}
-                  >
-                    <Wifi className="w-4 h-4" />
-                    {isCheckingConnection ? 'Перевірка...' : 'Підтвердити підключення'}
-                  </Button>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate('/add-device')} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Додати новий пристрій
+        </Button>
       </div>
 
-      {/* Статус підключення (Реалтайм) */}
+      {/* Статус підключення */}
       <Card className="border-primary/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
@@ -422,198 +235,175 @@ export function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-muted" />
-              <span>Всього: {totalDevices}</span>
+              <span>Всього: {devices.length}</span>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Реалтайм-моніторинг через Supabase Realtime
-            </p>
-            <div className="flex items-center gap-2 text-sm">
-              <div className={`w-2 h-2 rounded-full ${supabaseConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className={supabaseConnected ? 'text-green-600' : 'text-red-600'}>
-                {supabaseConnected ? 'Підключено до Supabase' : 'Немає з\'єднання з Supabase'}
-              </span>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
-      {/* Статус пристроїв */}
+      {/* Таблиця пристроїв */}
       <Card className="gradient-card border-border/50">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Cpu className="h-5 w-5 text-accent" />
-              <span>Пристрої</span>
-            </CardTitle>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-              <SelectTrigger className="w-[180px]">
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">За назвою</SelectItem>
-                <SelectItem value="type">За типом</SelectItem>
-                <SelectItem value="date">За датою (нові)</SelectItem>
-                <SelectItem value="age">За віком (старі)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <CardTitle className="flex items-center space-x-2">
+            <Cpu className="h-5 w-5 text-accent" />
+            <span>Мої пристрої</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {sortedDevices.map((device, index) => (
-            <div key={device.id} className="p-4 rounded-lg bg-muted/30 border border-border/30">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className={`h-3 w-3 rounded-full ${
-                    device.status === 'online' ? 'bg-success animate-pulse-glow' : 'bg-destructive'
-                  }`} />
-                  <div>
-                    <p className="text-sm font-medium">{device.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {device.type} • {new Date(device.lastSeen).toLocaleString('uk-UA')}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={device.status === 'online' ? 'default' : 'destructive'}>
-                  {device.status === 'online' ? t('devices.online') : t('devices.offline')}
-                </Badge>
-              </div>
-              
-              {device.status === 'online' && device.temperature && device.humidity && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div className="flex items-center space-x-2 p-2 rounded bg-background/50">
-                    <Thermometer className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Температура</p>
-                      <p className="text-lg font-bold" style={{ color: deviceColors[index % deviceColors.length].temp }}>
-                        {device.temperature.toFixed(1)}°C
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 rounded bg-background/50">
-                    <Droplets className="h-4 w-4 text-accent" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Вологість</p>
-                      <p className="text-lg font-bold" style={{ color: deviceColors[index % deviceColors.length].humidity }}>
-                        {device.humidity.toFixed(0)}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+        <CardContent>
+          {devices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Немає підключених пристроїв</p>
+              <Button 
+                onClick={() => navigate('/add-device')} 
+                className="mt-4"
+                variant="outline"
+              >
+                Додати перший пристрій
+              </Button>
             </div>
-          ))}
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-3 text-sm font-semibold">Device ID</th>
+                    <th className="text-left p-3 text-sm font-semibold">Назва</th>
+                    <th className="text-left p-3 text-sm font-semibold">Статус</th>
+                    <th className="text-left p-3 text-sm font-semibold">Останнє з'єднання</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devices.map((device) => (
+                    <tr 
+                      key={device.id}
+                      onClick={() => setSelectedDeviceId(device.id)}
+                      className={`border-b border-border hover:bg-muted/50 cursor-pointer transition-colors ${
+                        selectedDeviceId === device.id ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <td className="p-3 text-sm font-mono">{device.device_id}</td>
+                      <td className="p-3 text-sm">{device.name}</td>
+                      <td className="p-3">
+                        <Badge variant={device.status === 'online' ? 'default' : 'destructive'}>
+                          {device.status === 'online' ? 'Онлайн' : 'Офлайн'}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {new Date(device.last_seen).toLocaleString('uk-UA')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Real-time Charts Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Дані у реальному часі</h2>
-        
-        {/* Combined Chart for All Devices */}
-        <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <span>Температура та Вологість (всі пристрої)</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[400px] w-full">
-              <ChartContainer config={{}}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={sensorData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    {devices.filter(d => d.status === 'online').map((device, index) => (
-                      <Line 
-                        key={`${device.id}_temp`}
-                        type="monotone" 
-                        dataKey={`${device.id}_temp`}
-                        name={`${device.name} - Темп.`}
-                        stroke={deviceColors[index % deviceColors.length].temp}
-                        strokeWidth={2}
-                      />
-                    ))}
-                    {devices.filter(d => d.status === 'online').map((device, index) => (
-                      <Line 
-                        key={`${device.id}_humidity`}
-                        type="monotone" 
-                        dataKey={`${device.id}_humidity`}
-                        name={`${device.name} - Волог.`}
-                        stroke={deviceColors[index % deviceColors.length].humidity}
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Individual Device Charts */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {devices.filter(d => d.status === 'online').map((device, index) => (
-            <Card key={device.id} className="gradient-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="text-base">{device.name}</span>
-                  <div className="flex gap-2">
-                    {device.temperature && (
-                      <Badge variant="outline" style={{ borderColor: deviceColors[index % deviceColors.length].temp }}>
-                        {device.temperature.toFixed(1)}°C
-                      </Badge>
-                    )}
-                    {device.humidity && (
-                      <Badge variant="outline" style={{ borderColor: deviceColors[index % deviceColors.length].humidity }}>
-                        {device.humidity.toFixed(0)}%
-                      </Badge>
-                    )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px] w-full">
+      {/* Логи вибраного пристрою */}
+      {selectedDevice && (
+        <>
+          <Card className="gradient-card border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5 text-primary" />
+                <span>Графік даних: {selectedDevice.name}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sensorData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Немає даних для відображення
+                </div>
+              ) : (
+                <div className="h-[300px] w-full">
                   <ChartContainer config={{}}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={sensorData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                        <YAxis stroke="hsl(var(--muted-foreground))" />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey={`${device.id}_temp`}
-                          name="Температура"
-                          stroke={deviceColors[index % deviceColors.length].temp}
-                          strokeWidth={2}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey={`${device.id}_humidity`}
-                          name="Вологість"
-                          stroke={deviceColors[index % deviceColors.length].humidity}
-                          strokeWidth={2}
-                        />
+                        {sensorData[0]?.temperature !== undefined && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="temperature"
+                            name="Температура (°C)"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={2}
+                          />
+                        )}
+                        {sensorData[0]?.humidity !== undefined && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="humidity"
+                            name="Вологість (%)"
+                            stroke="hsl(var(--accent))"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                          />
+                        )}
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="gradient-card border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center space-x-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  <span>Останні 20 записів логів</span>
+                </span>
+                {deviceLogs.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Всього: {deviceLogs.length}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {deviceLogs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Немає записів логів
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {deviceLogs.map((log) => (
+                    <div 
+                      key={log.id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        {log.metric === 'temperature' ? (
+                          <Thermometer className="h-4 w-4 text-primary" />
+                        ) : log.metric === 'humidity' ? (
+                          <Droplets className="h-4 w-4 text-accent" />
+                        ) : (
+                          <Activity className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium capitalize">{log.metric}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.created_at).toLocaleString('uk-UA')}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="font-mono">
+                        {log.value.toFixed(2)} {log.metric === 'temperature' ? '°C' : '%'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
