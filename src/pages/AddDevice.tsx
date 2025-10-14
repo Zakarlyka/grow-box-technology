@@ -14,6 +14,8 @@ export default function AddDevice() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [deviceId, setDeviceId] = useState('');
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
   const [isChecking, setIsChecking] = useState(false);
 
   const generateDeviceId = () => {
@@ -35,8 +37,8 @@ export default function AddDevice() {
   };
 
   const checkConnection = async () => {
-    if (!user) {
-      toast.error('Потрібна авторизація');
+    if (!deviceId || !name) {
+      toast.error('Заповніть Device ID та Name');
       return;
     }
 
@@ -50,7 +52,11 @@ export default function AddDevice() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ device_id: deviceId }),
+          body: JSON.stringify({ 
+            device_id: deviceId,
+            name: name,
+            location: location || undefined
+          }),
         }
       );
 
@@ -68,8 +74,11 @@ export default function AddDevice() {
 
       const data = await response.json();
 
-      if (data?.status === 'connected') {
-        toast.success('Пристрій підключено успішно!');
+      if (data?.success === true) {
+        toast.success('✅ Device confirmed');
+        navigate('/');
+      } else if (data?.status === 'connected') {
+        toast.success('✅ Device confirmed');
         navigate('/');
       } else if (data?.status === 'not_found') {
         toast.error('Пристрій не знайдено. Спробуйте ще раз.');
@@ -113,8 +122,9 @@ export default function AddDevice() {
                 <Input
                   id="deviceId"
                   value={deviceId}
-                  readOnly
+                  onChange={(e) => setDeviceId(e.target.value)}
                   className="font-mono"
+                  placeholder="growbox001"
                 />
                 <Button
                   variant="outline"
@@ -133,6 +143,29 @@ export default function AddDevice() {
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            {/* Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Grow Box"
+                required
+              />
+            </div>
+
+            {/* Location Input */}
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Kitchen"
+              />
             </div>
 
             {/* QR Code */}
@@ -158,7 +191,7 @@ export default function AddDevice() {
             {/* Check Connection Button */}
             <Button
               onClick={checkConnection}
-              disabled={isChecking}
+              disabled={isChecking || !deviceId || !name}
               className="w-full"
               size="lg"
             >
@@ -168,7 +201,7 @@ export default function AddDevice() {
                   Перевірка підключення...
                 </>
               ) : (
-                'Перевірити підключення'
+                'Confirm device'
               )}
             </Button>
           </CardContent>

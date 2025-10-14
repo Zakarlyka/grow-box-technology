@@ -12,6 +12,7 @@ import { RemoteControlPage } from "./pages/RemoteControlPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AddDevice from "./pages/AddDevice";
+import Devices from "./pages/Devices";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <AddDevice />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/devices"
+        element={
+          <ProtectedRoute>
+            <Devices />
           </ProtectedRoute>
         }
       />

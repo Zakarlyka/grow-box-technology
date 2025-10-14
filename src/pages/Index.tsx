@@ -4,8 +4,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { Header } from '@/components/Header';
 import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
-import { Devices } from '@/components/Devices';
 import { RemoteControlPage } from '@/pages/RemoteControlPage';
+import Devices from '@/pages/Devices';
 import { DeviceManagement } from '@/components/DeviceManagement';
 import { AdvancedCharts } from '@/components/AdvancedCharts';
 import { Settings } from '@/pages/Settings';
@@ -21,7 +21,7 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'my-devices':
-        return <DeviceManagement />;
+        return <Devices />;
       case 'remote-control':
         return <RemoteControlPage />;
       case 'analytics':
