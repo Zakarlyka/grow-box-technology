@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AddDevice from "./pages/AddDevice";
 import Devices from "./pages/Devices";
+import QRConnection from "./pages/QRConnection";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/qr/:token" element={<QRConnection />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
