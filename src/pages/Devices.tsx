@@ -14,6 +14,7 @@ interface Device {
   location: string | null;
   last_temp?: number;
   last_hum?: number;
+  last_seen?: string;
   updated_at: string;
   status?: string;
 }
@@ -120,11 +121,13 @@ export default function Devices() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
+                      <TableHead>UUID</TableHead>
+                      <TableHead>Device ID</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Location</TableHead>
-                      <TableHead>Last Temp</TableHead>
-                      <TableHead>Last Hum</TableHead>
+                      <TableHead>Temp</TableHead>
+                      <TableHead>Hum</TableHead>
+                      <TableHead>Last Seen</TableHead>
                       <TableHead>Updated At</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -132,6 +135,9 @@ export default function Devices() {
                   <TableBody>
                     {devices.map((device) => (
                       <TableRow key={device.id}>
+                        <TableCell className="font-mono text-xs">
+                          {device.id.substring(0, 8)}...
+                        </TableCell>
                         <TableCell className="font-mono text-sm">
                           {device.device_id}
                         </TableCell>
@@ -146,6 +152,9 @@ export default function Devices() {
                         </TableCell>
                         <TableCell>
                           {device.last_hum ? `${device.last_hum}%` : '-'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {device.last_seen ? formatDate(device.last_seen) : '-'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(device.updated_at)}
