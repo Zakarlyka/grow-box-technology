@@ -4,7 +4,7 @@ project_id = "ychnmaaximnoxvwnzrgs"
 verify_jwt = false
 
 [functions.confirm-device]
-verify_jwt = true
+verify_jwt = false
 
 [functions.device-api]
 verify_jwt = false
