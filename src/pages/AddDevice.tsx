@@ -43,21 +43,30 @@ export default function AddDevice() {
     setIsChecking(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('confirm-device', {
-        body: { deviceId, userId: user.id },
-      });
-
-      if (error) {
-        if (error.message?.includes('404') || error.message?.includes('FunctionsRelayError')) {
-          toast.error('Потрібно розгорнути Edge Function confirm-device');
-        } else {
-          toast.error('Перевір з\'єднання', {
-            description: 'Повторна спроба через 5 секунд...',
-          });
-          setTimeout(() => checkConnection(), 5000);
+      const response = await fetch(
+        'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ device_id: deviceId }),
         }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('Потрібно розгорнути Edge Function confirm-device');
+          return;
+        }
+        toast.error('Перевір з\'єднання', {
+          description: 'Повторна спроба через 5 секунд...',
+        });
+        setTimeout(() => checkConnection(), 5000);
         return;
       }
+
+      const data = await response.json();
 
       if (data?.status === 'connected') {
         toast.success('Пристрій підключено успішно!');
