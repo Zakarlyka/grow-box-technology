@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AddDevice from "./pages/AddDevice";
 import Devices from "./pages/Devices";
+import DeviceDetail from "./pages/DeviceDetail";
 import QRConnection from "./pages/QRConnection";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Devices />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/device/:id"
+        element={
+          <ProtectedRoute>
+            <DeviceDetail />
           </ProtectedRoute>
         }
       />

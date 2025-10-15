@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, Plus, Trash2, Lightbulb, Flame, Droplets, Wind, CloudRain } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Plus, Trash2, Lightbulb, Flame, Droplets, Wind, CloudRain, Thermometer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
@@ -42,6 +44,7 @@ interface DeviceControl {
 
 const Devices = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [devices, setDevices] = useState<Device[]>([]);
   const [controls, setControls] = useState<Record<string, DeviceControl[]>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -294,142 +297,191 @@ const Devices = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-2xl font-bold">Мої пристрої</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
+    <div className="flex-1 space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Мої пристрої
+          </h1>
+          <p className="text-muted-foreground">
+            Керуйте своїми ESP32 GrowBox пристроями
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button onClick={handleAddDevice} disabled={isGenerating} className="gradient-primary">
+            <Plus className="mr-2 h-4 w-4" />
+            Додати пристрій
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : devices.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-muted-foreground mb-4">У вас ще немає підключених пристроїв</p>
             <Button onClick={handleAddDevice} disabled={isGenerating}>
               <Plus className="mr-2 h-4 w-4" />
-              Додати пристрій
+              Додати перший пристрій
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : devices.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">У вас ще немає підключених пристроїв</p>
-              <Button onClick={handleAddDevice} disabled={isGenerating}>
-                <Plus className="mr-2 h-4 w-4" />
-                Додати перший пристрій
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {devices.map((device) => (
-                <Card key={device.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl font-bold">{device.name || device.device_id}</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">{device.location || 'Не вказано'}</p>
-                      </div>
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          device.status === 'online'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                        }`}
-                      >
-                        {device.status === 'online' ? 'Online' : 'Offline'}
-                      </span>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {devices.map((device) => (
+            <Card 
+              key={device.id} 
+              className="gradient-card border-border/50 hover:shadow-lg transition-all duration-300 cursor-pointer"
+              onClick={() => navigate(`/device/${device.id}`)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{device.name || device.device_id}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{device.location || 'Не вказано'}</p>
+                  </div>
+                  <Badge
+                    variant={device.status === 'online' ? 'default' : 'destructive'}
+                    className={device.status === 'online' ? 'animate-pulse-glow' : ''}
+                  >
+                    {device.status === 'online' ? 'Online' : 'Offline'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Оновлено: {formatDate(device.updated_at)}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Sensor Data */}
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <div className="flex items-center space-x-2">
+                    <Thermometer className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Температура</p>
+                      <p className="text-sm font-medium">
+                        {device.last_temp !== null && device.last_temp !== undefined 
+                          ? `${device.last_temp}°C` 
+                          : '-'}
+                      </p>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Sensor Data */}
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <div className="text-center flex-1">
-                        <p className="text-2xl font-bold">
-                          {device.last_temp !== null && device.last_temp !== undefined ? `${device.last_temp}°C` : '-'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">🌡 Температура</p>
-                      </div>
-                      <div className="text-center flex-1">
-                        <p className="text-2xl font-bold">
-                          {device.last_hum !== null && device.last_hum !== undefined ? `${device.last_hum}%` : '-'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">💧 Вологість</p>
-                      </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Droplets className="h-4 w-4 text-accent" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Вологість</p>
+                      <p className="text-sm font-medium">
+                        {device.last_hum !== null && device.last_hum !== undefined 
+                          ? `${device.last_hum}%` 
+                          : '-'}
+                      </p>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Control Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={getControlValue(device.id, 'light') ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleControl(device.id, 'light', getControlValue(device.id, 'light'))}
-                        className="w-full"
-                      >
-                        <Lightbulb className="mr-2 h-4 w-4" />
-                        Освітлення
-                      </Button>
-                      <Button
-                        variant={getControlValue(device.id, 'heater') ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleControl(device.id, 'heater', getControlValue(device.id, 'heater'))}
-                        className="w-full"
-                      >
-                        <Flame className="mr-2 h-4 w-4" />
-                        Нагрів
-                      </Button>
-                      <Button
-                        variant={getControlValue(device.id, 'water') ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleControl(device.id, 'water', getControlValue(device.id, 'water'))}
-                        className="w-full"
-                      >
-                        <Droplets className="mr-2 h-4 w-4" />
-                        Полив
-                      </Button>
-                      <Button
-                        variant={getControlValue(device.id, 'humidifier') ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleControl(device.id, 'humidifier', getControlValue(device.id, 'humidifier'))}
-                        className="w-full"
-                      >
-                        <CloudRain className="mr-2 h-4 w-4" />
-                        Зволожувач
-                      </Button>
-                      <Button
-                        variant={getControlValue(device.id, 'fan') ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleControl(device.id, 'fan', getControlValue(device.id, 'fan'))}
-                        className="w-full col-span-2"
-                      >
-                        <Wind className="mr-2 h-4 w-4" />
-                        Вентилятор
-                      </Button>
-                    </div>
-
-                    {/* Delete Button */}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(device.id)}
-                      className="w-full"
+                {/* Controls Preview */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Керування</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleControl(device.id, 'light', getControlValue(device.id, 'light'));
+                      }}
+                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                        getControlValue(device.id, 'light')
+                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
+                          : 'bg-muted/20 border-border/50'
+                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Видалити пристрій
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="flex items-center space-x-2">
+                        <Lightbulb className={`h-4 w-4 ${getControlValue(device.id, 'light') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">Освітлення</span>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleControl(device.id, 'heater', getControlValue(device.id, 'heater'));
+                      }}
+                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                        getControlValue(device.id, 'heater')
+                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
+                          : 'bg-muted/20 border-border/50'
+                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Flame className={`h-4 w-4 ${getControlValue(device.id, 'heater') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">Нагрів</span>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleControl(device.id, 'water', getControlValue(device.id, 'water'));
+                      }}
+                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                        getControlValue(device.id, 'water')
+                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
+                          : 'bg-muted/20 border-border/50'
+                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Droplets className={`h-4 w-4 ${getControlValue(device.id, 'water') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">Полив</span>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleControl(device.id, 'fan', getControlValue(device.id, 'fan'));
+                      }}
+                      className={`p-3 rounded-lg border transition-all duration-200 ${
+                        getControlValue(device.id, 'fan')
+                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
+                          : 'bg-muted/20 border-border/50'
+                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Wind className={`h-4 w-4 ${getControlValue(device.id, 'fan') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">Вентилятор</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delete Button */}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteClick(device.id);
+                  }}
+                  className="w-full"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Видалити пристрій
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
         <DialogContent className="sm:max-w-md">
