@@ -23,7 +23,7 @@ const QRConnection = () => {
     );
   }
 
-  const setupUrl = `${window.location.origin}/qr/${token}`;
+  const setupUrl = `http://192.168.4.1/?token=${token}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4 flex items-center justify-center">
@@ -63,7 +63,7 @@ const QRConnection = () => {
                   1
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium mb-1">Підключіться до Wi-Fi точки доступу</p>
+                  <p className="font-medium mb-1">📲 Підключіться до Wi-Fi GrowBox-Setup</p>
                   <p className="text-sm text-muted-foreground">
                     Знайдіть мережу з назвою <code className="px-2 py-1 bg-background rounded">GrowBox-Setup</code> та підключіться до неї
                   </p>
@@ -79,9 +79,9 @@ const QRConnection = () => {
                   2
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium mb-1">Відкрийте веб-інтерфейс пристрою</p>
+                  <p className="font-medium mb-1">🔗 Відскануйте QR-код</p>
                   <p className="text-sm text-muted-foreground">
-                    Перейдіть за адресою <code className="px-2 py-1 bg-background rounded">192.168.4.1/setup</code> в браузері
+                    Відскануйте QR-код вище або вручну відкрийте <code className="px-2 py-1 bg-background rounded">{setupUrl}</code> в браузері
                   </p>
                 </div>
               </div>
@@ -95,9 +95,9 @@ const QRConnection = () => {
                   3
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium mb-1">Введіть токен підключення</p>
+                  <p className="font-medium mb-1">🧩 Налаштуйте Wi-Fi</p>
                   <p className="text-sm text-muted-foreground">
-                    Скопіюйте токен вище або скануйте QR-код на екрані налаштувань пристрою
+                    Токен буде автоматично заповнений. Введіть дані вашої домашньої Wi-Fi мережі та натисніть "Підключити"
                   </p>
                 </div>
               </div>
@@ -111,9 +111,9 @@ const QRConnection = () => {
                   4
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium mb-1">Налаштуйте Wi-Fi</p>
+                  <p className="font-medium mb-1">✅ Пристрій підключиться автоматично</p>
                   <p className="text-sm text-muted-foreground">
-                    Введіть дані вашої домашньої Wi-Fi мережі для постійного підключення
+                    Після успішного підключення пристрій автоматично з'явиться у вашому списку пристроїв
                   </p>
                 </div>
               </div>

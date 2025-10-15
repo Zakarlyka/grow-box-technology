@@ -113,7 +113,7 @@ const Devices = () => {
       }
 
       if (data?.device_token) {
-        const qrUrl = `${window.location.origin}/qr/${data.device_token}`;
+        const qrUrl = `http://192.168.4.1/?token=${data.device_token}`;
         setQrData({ token: data.device_token, url: qrUrl });
         setShowQRModal(true);
         
@@ -259,10 +259,14 @@ const Devices = () => {
                 <div className="w-full text-sm text-muted-foreground">
                   <p className="font-medium mb-2">Інструкція:</p>
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Підключіться до Wi-Fi "GrowBox-Setup"</li>
-                    <li>Відкрийте 192.168.4.1/setup</li>
-                    <li>Вставте токен вище або скануйте QR-код</li>
+                    <li>📲 Підключіться до Wi-Fi "GrowBox-Setup"</li>
+                    <li>🔗 Відскануйте QR-код (токен заповниться автоматично)</li>
+                    <li>🧩 Введіть Wi-Fi та пароль на сторінці пристрою</li>
+                    <li>✅ Пристрій підключиться автоматично і з'явиться у списку</li>
                   </ol>
+                  <p className="text-xs mt-2">
+                    Або відкрийте вручну: <code className="px-1 py-0.5 bg-muted rounded text-xs">{qrData.url}</code>
+                  </p>
                 </div>
               </>
             )}
