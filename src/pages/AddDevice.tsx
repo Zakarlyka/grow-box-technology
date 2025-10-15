@@ -36,58 +36,62 @@ export default function AddDevice() {
     toast.success('Device ID скопійовано');
   };
 
-  const checkConnection = async () => {
+  const registerDevice = async () => {
     if (!deviceId || !name) {
       toast.error('Заповніть Device ID та Name');
+      return;
+    }
+
+    if (!user) {
+      toast.error('Необхідно увійти в систему');
       return;
     }
 
     setIsChecking(true);
 
     try {
-      const response = await fetch(
-        'https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/confirm-device',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            device_id: deviceId,
-            name: name,
-            location: location || undefined
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.error('Потрібно розгорнути Edge Function confirm-device');
-          return;
-        }
-        toast.error('Перевір з\'єднання', {
-          description: 'Повторна спроба через 5 секунд...',
+      // Create pairing record in pending_devices (device_token is not needed here, we use device_id)
+      const { error: pairingError } = await supabase
+        .from('device_pairing_temp')
+        .insert({
+          device_id: deviceId,
+          user_id: user.id,
+          pairing_code: deviceId, // Use device_id as pairing code
         });
-        setTimeout(() => checkConnection(), 5000);
+
+      if (pairingError) {
+        console.error('Pairing error:', pairingError);
+        toast.error('Помилка реєстрації пристрою');
+        setIsChecking(false);
         return;
       }
 
-      const data = await response.json();
+      // Call setup function to register device
+      const { data, error } = await supabase.functions.invoke('setup', {
+        body: {
+          device_id: deviceId,
+          name: name,
+          type: 'grow_box',
+          location: location || null,
+        },
+      });
 
-      if (data?.success === true) {
-        toast.success('✅ Device confirmed');
-        navigate('/');
-      } else if (data?.status === 'connected') {
-        toast.success('✅ Device confirmed');
-        navigate('/');
-      } else if (data?.status === 'not_found') {
-        toast.error('Пристрій не знайдено. Спробуйте ще раз.');
+      if (error) {
+        console.error('Setup error:', error);
+        toast.error('Помилка налаштування пристрою');
+        setIsChecking(false);
+        return;
+      }
+
+      if (data?.success) {
+        toast.success('✅ Пристрій успішно додано');
+        navigate('/devices');
       } else {
-        toast.warning('Пристрій офлайн. Перевірте підключення.');
+        toast.error('Не вдалося зареєструвати пристрій');
       }
     } catch (err) {
-      console.error('Connection check error:', err);
-      toast.error('Помилка перевірки з\'єднання');
+      console.error('Registration error:', err);
+      toast.error('Помилка реєстрації пристрою');
     } finally {
       setIsChecking(false);
     }
@@ -188,9 +192,9 @@ export default function AddDevice() {
               </ol>
             </div>
 
-            {/* Check Connection Button */}
+            {/* Register Device Button */}
             <Button
-              onClick={checkConnection}
+              onClick={registerDevice}
               disabled={isChecking || !deviceId || !name}
               className="w-full"
               size="lg"
@@ -198,10 +202,10 @@ export default function AddDevice() {
               {isChecking ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Перевірка підключення...
+                  Реєстрація пристрою...
                 </>
               ) : (
-                'Confirm device'
+                'Зареєструвати пристрій'
               )}
             </Button>
           </CardContent>
