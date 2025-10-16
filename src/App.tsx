@@ -15,6 +15,9 @@ import AddDevice from "./pages/AddDevice";
 import Devices from "./pages/Devices";
 import DeviceDetail from "./pages/DeviceDetail";
 import QRConnection from "./pages/QRConnection";
+import { Settings } from "./pages/Settings";
+import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -51,37 +54,33 @@ const AppRoutes = () => {
     <Routes>
       <Route 
         path="/auth" 
-        element={user ? <Navigate to="/" replace /> : <Auth />} 
+        element={user ? <Navigate to="/dashboard" replace /> : <Auth />} 
       />
       <Route
         path="/"
+        element={<Navigate to="/dashboard" replace />}
+      />
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
-            <Index />
+            <Dashboard />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/remote-control"
-        element={
-          <ProtectedRoute>
-            <RemoteControlPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/add-device"
-        element={
-          <ProtectedRoute>
-            <AddDevice />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/devices"
+        path="/device"
         element={
           <ProtectedRoute>
             <Devices />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/device/add-device"
+        element={
+          <ProtectedRoute>
+            <AddDevice />
           </ProtectedRoute>
         }
       />
@@ -90,6 +89,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DeviceDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
           </ProtectedRoute>
         }
       />

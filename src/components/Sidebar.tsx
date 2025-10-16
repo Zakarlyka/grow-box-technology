@@ -1,12 +1,14 @@
-import { LayoutDashboard, BarChart3, Wifi, Sprout } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Wifi, Sprout, Settings, Shield } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export const Sidebar = () => {
   const { user } = useAuth();
+  const { isAdmin, isSuperAdmin } = useUserRole();
   const [onlineCount, setOnlineCount] = useState(0);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         <NavLink
-          to="/devices"
+          to="/dashboard"
           className={({ isActive }) =>
             cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
@@ -77,7 +79,15 @@ export const Sidebar = () => {
         </NavLink>
 
         <NavLink
-          to="/"
+          to="/dashboard"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+        >
+          <BarChart3 className="w-5 h-5" />
+          <span>Аналітика</span>
+        </NavLink>
+
+        <NavLink
+          to="/settings"
           className={({ isActive }) =>
             cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
@@ -87,9 +97,26 @@ export const Sidebar = () => {
             )
           }
         >
-          <BarChart3 className="w-5 h-5" />
-          <span>Аналітика</span>
+          <Settings className="w-5 h-5" />
+          <span>Налаштування</span>
         </NavLink>
+
+        {(isAdmin || isSuperAdmin) && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                isActive
+                  ? "bg-secondary text-accent"
+                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+              )
+            }
+          >
+            <Shield className="w-5 h-5" />
+            <span>Адмін</span>
+          </NavLink>
+        )}
       </nav>
 
       {/* MQTT Status */}

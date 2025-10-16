@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Copy, RefreshCw, Wifi, ArrowLeft } from 'lucide-react';
+import { Sidebar } from '@/components/Sidebar';
 
 export default function AddDevice() {
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ export default function AddDevice() {
 
       if (data?.success) {
         toast.success('✅ Пристрій успішно додано');
-        navigate('/devices');
+        navigate('/dashboard');
       } else {
         toast.error('Не вдалося зареєструвати пристрій');
       }
@@ -100,25 +101,26 @@ export default function AddDevice() {
   const qrUrl = `http://192.168.4.1/?deviceId=${deviceId}`;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Назад до Dashboard
-        </Button>
+    <div className="flex min-h-screen w-full">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <div className="p-8 space-y-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Назад до Dashboard
+          </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wifi className="h-6 w-6" />
-              Додати новий пристрій
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wifi className="h-6 w-6" />
+                Додати новий пристрій
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
             {/* Device ID Input */}
             <div className="space-y-2">
               <Label htmlFor="deviceId">Device ID</Label>
@@ -210,7 +212,8 @@ export default function AddDevice() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

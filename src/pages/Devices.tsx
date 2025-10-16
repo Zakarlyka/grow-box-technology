@@ -161,11 +161,8 @@ const Devices = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full">
-      <Sidebar />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="p-8 space-y-6">
+    <>
+      <div className="p-8 space-y-6">
           <PageHeader 
             title="Пристрої"
             subtitle="Керуйте своїми ESP32 GrowBox пристроями в реальному часі"
@@ -237,9 +234,8 @@ const Devices = () => {
           )}
         </DialogContent>
       </Dialog>
-        </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 };
 

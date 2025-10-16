@@ -6,14 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { Sidebar } from '@/components/Sidebar';
+import { DeviceControls } from '@/components/DeviceControls';
 import { 
   Thermometer, 
   Droplets, 
   ArrowLeft,
-  Lightbulb,
-  Flame,
-  CloudRain,
-  Wind,
   Trash2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -260,13 +258,16 @@ export default function DeviceDetail() {
     : 'Немає даних';
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/devices')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+    <div className="flex min-h-screen w-full">
+      <Sidebar />
+      <main className="flex-1 overflow-auto">
+        <div className="p-8 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
           <div>
             <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">
               Панель пристрою
@@ -349,101 +350,8 @@ export default function DeviceDetail() {
         <CardHeader>
           <CardTitle>Керування пристроєм</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2">
-          <Button 
-            onClick={() => sendCmd('relay_1', 'on')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Lightbulb className="mr-2 h-5 w-5" />
-            💡 Світло ON
-          </Button>
-          <Button 
-            onClick={() => sendCmd('relay_1', 'off')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Lightbulb className="mr-2 h-5 w-5" />
-            💡 Світло OFF
-          </Button>
-
-          <Button 
-            onClick={() => sendCmd('relay_2', 'on')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Flame className="mr-2 h-5 w-5" />
-            🔥 Нагрів ON
-          </Button>
-          <Button 
-            onClick={() => sendCmd('relay_2', 'off')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Flame className="mr-2 h-5 w-5" />
-            🔥 Нагрів OFF
-          </Button>
-
-          <Button 
-            onClick={() => sendCmd('relay_3', 'on')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Droplets className="mr-2 h-5 w-5" />
-            💧 Полив ON
-          </Button>
-          <Button 
-            onClick={() => sendCmd('relay_3', 'off')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Droplets className="mr-2 h-5 w-5" />
-            💧 Полив OFF
-          </Button>
-
-          <Button 
-            onClick={() => sendCmd('relay_4', 'on')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <CloudRain className="mr-2 h-5 w-5" />
-            🌫 Зволоження ON
-          </Button>
-          <Button 
-            onClick={() => sendCmd('relay_4', 'off')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <CloudRain className="mr-2 h-5 w-5" />
-            🌫 Зволоження OFF
-          </Button>
-
-          <Button 
-            onClick={() => sendCmd('relay_5', 'on')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Wind className="mr-2 h-5 w-5" />
-            💨 Вентиляція ON
-          </Button>
-          <Button 
-            onClick={() => sendCmd('relay_5', 'off')}
-            disabled={!isOnline}
-            variant="outline"
-            className="h-20"
-          >
-            <Wind className="mr-2 h-5 w-5" />
-            💨 Вентиляція OFF
-          </Button>
+        <CardContent>
+          <DeviceControls device={device} isOnline={isOnline} />
         </CardContent>
       </Card>
 
@@ -516,6 +424,8 @@ export default function DeviceDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </div>
+      </main>
     </div>
   );
 }
