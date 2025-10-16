@@ -63,13 +63,52 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Delete related records first (due to foreign keys)
-    await supabase.from('device_controls').delete().eq('device_id', device.id);
-    await supabase.from('device_logs').delete().eq('device_id', device.device_id);
-    await supabase.from('sensor_data').delete().eq('device_id', device.id);
-    await supabase.from('device_schedules').delete().eq('device_id', device.id);
+    // Delete related records in correct order (due to foreign keys)
+    console.log('Deleting related data for device:', device.id);
 
-    // Delete the device
+    // 1. Device controls
+    const { count: controlsCount } = await supabase
+      .from('device_controls')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.id);
+    console.log(`Deleted ${controlsCount || 0} device_controls records`);
+
+    // 2. Device logs (using device.device_id - TEXT type)
+    const { count: logsCount } = await supabase
+      .from('device_logs')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.device_id);
+    console.log(`Deleted ${logsCount || 0} device_logs records`);
+
+    // 3. Sensor data
+    const { count: sensorCount } = await supabase
+      .from('sensor_data')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.id);
+    console.log(`Deleted ${sensorCount || 0} sensor_data records`);
+
+    // 4. Device schedules
+    const { count: schedulesCount } = await supabase
+      .from('device_schedules')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.id);
+    console.log(`Deleted ${schedulesCount || 0} device_schedules records`);
+
+    // 5. Notifications related to this device
+    const { count: notificationsCount } = await supabase
+      .from('notifications')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.id);
+    console.log(`Deleted ${notificationsCount || 0} notifications records`);
+
+    // 6. Device group membership
+    const { count: groupMembersCount } = await supabase
+      .from('device_group_members')
+      .delete({ count: 'exact' })
+      .eq('device_id', device.id);
+    console.log(`Deleted ${groupMembersCount || 0} device_group_members records`);
+
+    // Finally, delete the device itself
     const { error: deleteError } = await supabase
       .from('devices')
       .delete()
@@ -77,7 +116,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (deleteError) throw deleteError;
 
-    console.log('Device deleted:', device.device_id);
+    console.log('Device and all related data deleted successfully:', device.device_id);
+    console.log('Deletion performed by user:', user.id);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Device and related data deleted successfully' }),

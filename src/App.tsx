@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AddDevice from "./pages/AddDevice";
 import Devices from "./pages/Devices";
+import DeviceList from "./pages/DeviceList";
 import DeviceDetail from "./pages/DeviceDetail";
 import QRConnection from "./pages/QRConnection";
 import { Settings } from "./pages/Settings";
@@ -72,7 +73,7 @@ const AppRoutes = () => {
         path="/device"
         element={
           <ProtectedRoute>
-            <Devices />
+            <DeviceList />
           </ProtectedRoute>
         }
       />

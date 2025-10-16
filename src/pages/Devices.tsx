@@ -61,7 +61,7 @@ const Devices = () => {
   const isDeviceOnline = (device: Device): boolean => {
     return device.status === 'online' && 
       device.last_seen !== null &&
-      new Date(device.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
+      new Date(device.last_seen).getTime() > Date.now() - 2 * 60 * 1000; // 2 minutes
   };
 
   useEffect(() => {

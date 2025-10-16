@@ -1,15 +1,17 @@
-import { LayoutDashboard, BarChart3, Wifi, Sprout, Settings, Shield } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Wifi, Sprout, Settings, Shield, List } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { Badge } from '@/components/ui/badge';
 
 export const Sidebar = () => {
   const { user } = useAuth();
   const { isAdmin, isSuperAdmin } = useUserRole();
   const [onlineCount, setOnlineCount] = useState(0);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
 
   useEffect(() => {
     if (!user) return;
@@ -23,7 +25,7 @@ export const Sidebar = () => {
       if (!error && data) {
         const online = data.filter(d => 
           d.status === 'online' && 
-          new Date(d.last_seen).getTime() > Date.now() - 5 * 60 * 1000
+          new Date(d.last_seen).getTime() > Date.now() - 2 * 60 * 1000 // 2 minutes
         ).length;
         setOnlineCount(online);
       }
@@ -41,9 +43,26 @@ export const Sidebar = () => {
       }, () => {
         fetchOnlineDevices();
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected');
+        } else if (status === 'CHANNEL_ERROR') {
+          setRealtimeStatus('disconnected');
+        }
+      });
+
+    // Monitor channel status
+    const statusInterval = setInterval(() => {
+      const channelState = channel.state;
+      if (channelState === 'joined') {
+        setRealtimeStatus('connected');
+      } else if (channelState === 'errored' || channelState === 'closed') {
+        setRealtimeStatus('disconnected');
+      }
+    }, 5000);
 
     return () => {
+      clearInterval(statusInterval);
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -75,7 +94,22 @@ export const Sidebar = () => {
           }
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span>Пристрої</span>
+          <span>Dashboard</span>
+        </NavLink>
+
+        <NavLink
+          to="/device"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+              isActive
+                ? "bg-secondary text-accent"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+            )
+          }
+        >
+          <List className="w-5 h-5" />
+          <span>Список пристроїв</span>
         </NavLink>
 
         <NavLink
@@ -119,15 +153,43 @@ export const Sidebar = () => {
         )}
       </nav>
 
-      {/* MQTT Status */}
-      <div className="p-4 border-t border-border">
+      {/* Status Footer */}
+      <div className="p-4 border-t border-border space-y-3">
+        {/* Realtime Connection Status */}
+        <div className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            {realtimeStatus === 'connected' ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="text-xs text-muted-foreground">Realtime</span>
+              </>
+            ) : realtimeStatus === 'connecting' ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                <span className="text-xs text-muted-foreground">Підключення...</span>
+              </>
+            ) : (
+              <>
+                <div className="w-2 h-2 rounded-full bg-destructive" />
+                <span className="text-xs text-muted-foreground">Відключено</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Online Devices Count */}
         <div className="bg-secondary/30 border border-success/30 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-success animate-pulse-glow" />
-            <div>
-              <p className="text-success font-semibold text-sm">MQTT Connected</p>
-              <p className="text-xs text-muted-foreground">{onlineCount} пристроїв онлайн</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Wifi className="w-5 h-5 text-success" />
+              <div>
+                <p className="text-success font-semibold text-sm">Онлайн пристроїв</p>
+                <p className="text-xs text-muted-foreground">Активні зараз</p>
+              </div>
             </div>
+            <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+              {onlineCount}
+            </Badge>
           </div>
         </div>
       </div>
