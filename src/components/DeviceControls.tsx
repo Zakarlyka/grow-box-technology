@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Droplet, Sun, Wind, Flame } from 'lucide-react';
@@ -15,7 +16,19 @@ interface DeviceControlsProps {
 }
 
 export function DeviceControls({ device, isOnline }: DeviceControlsProps) {
+  const [lightIntensity, setLightIntensity] = useState([80]);
+  const [fanSpeed, setFanSpeed] = useState([60]);
+
   const handleSwitchChange = async (controlName: string, checked: boolean) => {
+    if (!isOnline) {
+      toast({
+        title: "Пристрій офлайн",
+        description: "Неможливо надіслати команду",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase.from('device_controls').insert([{
         device_id: device.id,
@@ -37,6 +50,21 @@ export function DeviceControls({ device, isOnline }: DeviceControlsProps) {
         description: "Не вдалося надіслати команду",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSliderChange = async (controlName: string, value: number[]) => {
+    if (!isOnline) return;
+
+    try {
+      await supabase.from('device_controls').insert([{
+        device_id: device.id,
+        control_name: controlName,
+        control_type: 'slider',
+        intensity: value[0]
+      }]);
+    } catch (error) {
+      console.error('Slider control error:', error);
     }
   };
 
@@ -97,11 +125,15 @@ export function DeviceControls({ device, isOnline }: DeviceControlsProps) {
       <div className="space-y-4 pt-2">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Light Intensity</span>
-            <span className="text-sm text-primary font-semibold">80%</span>
+            <span className="text-sm text-muted-foreground">Інтенсивність світла</span>
+            <span className="text-sm text-primary font-semibold">{lightIntensity[0]}%</span>
           </div>
           <Slider 
-            defaultValue={[80]} 
+            value={lightIntensity}
+            onValueChange={(value) => {
+              setLightIntensity(value);
+              handleSliderChange('light_intensity', value);
+            }}
             max={100} 
             step={1}
             disabled={!isOnline}
@@ -111,11 +143,15 @@ export function DeviceControls({ device, isOnline }: DeviceControlsProps) {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Fan Speed</span>
-            <span className="text-sm text-success font-semibold">60%</span>
+            <span className="text-sm text-muted-foreground">Швидкість вентилятора</span>
+            <span className="text-sm text-success font-semibold">{fanSpeed[0]}%</span>
           </div>
           <Slider 
-            defaultValue={[60]} 
+            value={fanSpeed}
+            onValueChange={(value) => {
+              setFanSpeed(value);
+              handleSliderChange('fan_speed', value);
+            }}
             max={100} 
             step={1}
             disabled={!isOnline}

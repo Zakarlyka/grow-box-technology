@@ -81,38 +81,31 @@ export default function DeviceDetail() {
   };
 
   const fetchLogs = async () => {
-    if (!device?.device_id) return;
+    if (!device?.id) return;
 
     try {
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
-        .from('device_logs')
-        .select('created_at, metric, value')
-        .eq('device_id', device.device_id)
-        .gte('created_at', twentyFourHoursAgo)
-        .order('created_at', { ascending: true });
+        .from('sensor_data')
+        .select('timestamp, temperature, humidity')
+        .eq('device_id', device.id)
+        .gte('timestamp', twentyFourHoursAgo)
+        .order('timestamp', { ascending: true });
 
       if (error) throw error;
 
-      // Group logs by timestamp
-      const logMap = new Map<string, LogEntry>();
-      data?.forEach(log => {
-        const time = new Date(log.created_at).toLocaleTimeString('uk-UA', { 
+      // Format data for chart
+      const formattedLogs = data?.map(log => ({
+        created_at: new Date(log.timestamp).toLocaleTimeString('uk-UA', { 
           hour: '2-digit', 
           minute: '2-digit' 
-        });
-        
-        if (!logMap.has(log.created_at)) {
-          logMap.set(log.created_at, { created_at: time });
-        }
-        
-        const entry = logMap.get(log.created_at)!;
-        if (log.metric === 'temperature') entry.temp = log.value;
-        if (log.metric === 'humidity') entry.hum = log.value;
-      });
+        }),
+        temp: log.temperature,
+        hum: log.humidity
+      })) || [];
 
-      setLogs(Array.from(logMap.values()));
+      setLogs(formattedLogs);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -149,12 +142,22 @@ export default function DeviceDetail() {
       .subscribe();
 
     const logsChannel = supabase
-      .channel(`logs-${device.device_id}`)
+      .channel(`sensor-data-${device.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'device_logs', filter: `device_id=eq.${device.device_id}` },
+        { event: 'INSERT', schema: 'public', table: 'sensor_data', filter: `device_id=eq.${device.id}` },
         (payload) => {
-          console.log('New log:', payload);
+          console.log('New sensor data:', payload);
+          
+          // Update device with latest readings
+          if (payload.new && typeof payload.new === 'object' && 'temperature' in payload.new && 'humidity' in payload.new) {
+            setDevice(prev => prev ? {
+              ...prev,
+              last_temp: payload.new.temperature,
+              last_hum: payload.new.humidity
+            } : null);
+          }
+          
           fetchLogs();
         }
       )

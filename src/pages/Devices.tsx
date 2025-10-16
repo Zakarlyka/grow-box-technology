@@ -108,7 +108,17 @@ const Devices = () => {
 
     setIsGenerating(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        throw new Error('No auth token');
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-qr', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: { user_id: user.id }
       });
 
