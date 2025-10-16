@@ -309,6 +309,15 @@ export default function DeviceDetail() {
     );
   }
 
+  // Check if device is online based on status and last_seen_at (5 minute timeout)
+  const isOnline = device.status === 'online' && 
+    device.last_seen_at && 
+    new Date(device.last_seen_at).getTime() > Date.now() - 5 * 60 * 1000;
+
+  const lastSeenText = device.last_seen_at 
+    ? new Date(device.last_seen_at).toLocaleString('uk-UA')
+    : 'Немає даних';
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -318,43 +327,56 @@ export default function DeviceDetail() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
+            <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">Панель пристрою</p>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               {device.name || device.device_id}
             </h1>
             <p className="text-muted-foreground">{device.location || 'Не вказано'}</p>
           </div>
         </div>
-        <Badge variant={device.status === 'online' ? 'default' : 'destructive'} className="text-lg px-4 py-2">
-          {device.status === 'online' ? '🟢 Online' : '🔴 Offline'}
-        </Badge>
+        <div className="text-right">
+          <Badge variant={isOnline ? 'default' : 'destructive'} className="text-lg px-4 py-2 mb-2">
+            {isOnline ? '🟢 Online' : '🔴 Offline'}
+          </Badge>
+          <p className="text-xs text-muted-foreground">Останнє оновлення:</p>
+          <p className="text-sm font-mono">{lastSeenText}</p>
+        </div>
       </div>
 
       {/* Main Stats Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 transition-all hover:shadow-lg">
           <CardContent className="p-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Температура</p>
-                <p className="text-5xl font-bold">
-                  {device.last_temp !== null && device.last_temp !== undefined ? `${device.last_temp}°C` : '-'}
+                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                  <Thermometer className="h-4 w-4" />
+                  Температура
                 </p>
+                <p className="text-5xl font-bold transition-all duration-500 animate-fade-in">
+                  {device.last_temp !== null && device.last_temp !== undefined ? `${device.last_temp}°C` : '--'}
+                </p>
+                {!isOnline && <p className="text-xs text-muted-foreground mt-2">Немає підключення</p>}
               </div>
-              <Thermometer className="h-16 w-16 text-primary opacity-50" />
+              <Thermometer className={`h-16 w-16 transition-all ${isOnline ? 'text-primary animate-pulse' : 'text-muted-foreground opacity-30'}`} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+        <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 transition-all hover:shadow-lg">
           <CardContent className="p-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Вологість</p>
-                <p className="text-5xl font-bold">
-                  {device.last_hum !== null && device.last_hum !== undefined ? `${device.last_hum}%` : '-'}
+                <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Вологість
                 </p>
+                <p className="text-5xl font-bold transition-all duration-500 animate-fade-in">
+                  {device.last_hum !== null && device.last_hum !== undefined ? `${device.last_hum}%` : '--'}
+                </p>
+                {!isOnline && <p className="text-xs text-muted-foreground mt-2">Немає підключення</p>}
               </div>
-              <Droplets className="h-16 w-16 text-accent opacity-50" />
+              <Droplets className={`h-16 w-16 transition-all ${isOnline ? 'text-accent animate-pulse' : 'text-muted-foreground opacity-30'}`} />
             </div>
           </CardContent>
         </Card>
@@ -438,31 +460,43 @@ export default function DeviceDetail() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Графік змін (останні 50 записів)
+                Історія даних (останні 24 години)
               </CardTitle>
             </CardHeader>
             <CardContent>
               {chartData.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Немає даних для відображення
+                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <p>Немає даних для відображення</p>
+                  <p className="text-sm mt-2">Дані з'являться після підключення пристрою</p>
                 </div>
               ) : (
                 <div className="h-[400px] w-full">
                   <ChartContainer config={{}}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                        <YAxis stroke="hsl(var(--muted-foreground))" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" className="opacity-30" />
+                        <XAxis 
+                          dataKey="time" 
+                          stroke="hsl(var(--muted-foreground))"
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))"
+                          style={{ fontSize: '12px' }}
+                        />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
                         {chartData[0]?.temperature !== undefined && (
                           <Line 
                             type="monotone" 
                             dataKey="temperature"
                             name="Температура (°C)"
                             stroke="hsl(var(--primary))"
-                            strokeWidth={2}
+                            strokeWidth={3}
+                            dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                            activeDot={{ r: 6 }}
+                            animationDuration={500}
                           />
                         )}
                         {chartData[0]?.humidity !== undefined && (
@@ -471,7 +505,10 @@ export default function DeviceDetail() {
                             dataKey="humidity"
                             name="Вологість (%)"
                             stroke="hsl(var(--accent))"
-                            strokeWidth={2}
+                            strokeWidth={3}
+                            dot={{ fill: 'hsl(var(--accent))', r: 4 }}
+                            activeDot={{ r: 6 }}
+                            animationDuration={500}
                           />
                         )}
                       </LineChart>
