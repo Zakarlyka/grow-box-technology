@@ -28,6 +28,7 @@ interface Device {
   last_temp?: number | null;
   last_hum?: number | null;
   last_seen: string | null;
+  last_seen_at?: string | null;
   updated_at: string;
   status: string;
   user_id: string;
@@ -102,6 +103,13 @@ const Devices = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  const isDeviceOnline = (device: Device): boolean => {
+    const lastSeen = device.last_seen_at || device.last_seen;
+    return device.status === 'online' && 
+      lastSeen !== null &&
+      new Date(lastSeen).getTime() > Date.now() - 5 * 60 * 1000;
   };
 
   useEffect(() => {
@@ -353,10 +361,10 @@ const Devices = () => {
                     <p className="text-sm text-muted-foreground">{device.location || 'Не вказано'}</p>
                   </div>
                   <Badge
-                    variant={device.status === 'online' ? 'default' : 'destructive'}
-                    className={device.status === 'online' ? 'animate-pulse-glow' : ''}
+                    variant={isDeviceOnline(device) ? 'default' : 'destructive'}
+                    className={isDeviceOnline(device) ? 'animate-pulse-glow' : ''}
                   >
-                    {device.status === 'online' ? 'Online' : 'Offline'}
+                    {isDeviceOnline(device) ? '🟢 Online' : '🔴 Offline'}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -397,7 +405,7 @@ const Devices = () => {
                   <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (device.status === 'online') {
+                        if (isDeviceOnline(device)) {
                           toggleControl(device.id, 'relay_1', getControlValue(device.id, 'relay_1'));
                         }
                       }}
@@ -405,7 +413,7 @@ const Devices = () => {
                         getControlValue(device.id, 'relay_1')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
-                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
                         <Lightbulb className={`h-4 w-4 ${getControlValue(device.id, 'relay_1') ? 'text-accent' : 'text-muted-foreground'}`} />
@@ -416,7 +424,7 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (device.status === 'online') {
+                        if (isDeviceOnline(device)) {
                           toggleControl(device.id, 'relay_2', getControlValue(device.id, 'relay_2'));
                         }
                       }}
@@ -424,7 +432,7 @@ const Devices = () => {
                         getControlValue(device.id, 'relay_2')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
-                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
                         <Flame className={`h-4 w-4 ${getControlValue(device.id, 'relay_2') ? 'text-accent' : 'text-muted-foreground'}`} />
@@ -435,7 +443,7 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (device.status === 'online') {
+                        if (isDeviceOnline(device)) {
                           toggleControl(device.id, 'relay_3', getControlValue(device.id, 'relay_3'));
                         }
                       }}
@@ -443,7 +451,7 @@ const Devices = () => {
                         getControlValue(device.id, 'relay_3')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
-                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
                         <Droplets className={`h-4 w-4 ${getControlValue(device.id, 'relay_3') ? 'text-accent' : 'text-muted-foreground'}`} />
@@ -454,7 +462,7 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (device.status === 'online') {
+                        if (isDeviceOnline(device)) {
                           toggleControl(device.id, 'relay_5', getControlValue(device.id, 'relay_5'));
                         }
                       }}
@@ -462,7 +470,7 @@ const Devices = () => {
                         getControlValue(device.id, 'relay_5')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
-                      } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
                         <Wind className={`h-4 w-4 ${getControlValue(device.id, 'relay_5') ? 'text-accent' : 'text-muted-foreground'}`} />

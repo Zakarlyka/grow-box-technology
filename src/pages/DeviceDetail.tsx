@@ -123,15 +123,18 @@ export default function DeviceDetail() {
   };
 
   const fetchLogs = async () => {
-    if (!id) return;
+    if (!device?.device_id) return;
 
     try {
+      // Fetch logs from last 24 hours
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('device_logs')
         .select('*')
-        .eq('device_id', id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .eq('device_id', device.device_id)
+        .gte('created_at', twentyFourHoursAgo)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       setLogs(data || []);
@@ -160,7 +163,7 @@ export default function DeviceDetail() {
         }
       });
 
-      setChartData(Array.from(chartMap.values()).reverse().slice(-20));
+      setChartData(Array.from(chartMap.values()));
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -172,9 +175,14 @@ export default function DeviceDetail() {
     if (user && id) {
       fetchDevice();
       fetchControls();
-      fetchLogs();
     }
   }, [id, user]);
+
+  useEffect(() => {
+    if (device) {
+      fetchLogs();
+    }
+  }, [device]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -195,7 +203,7 @@ export default function DeviceDetail() {
       .channel(`logs-${id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'device_logs', filter: `device_id=eq.${id}` },
+        { event: 'INSERT', schema: 'public', table: 'device_logs', filter: `device_id=eq.${device?.device_id}` },
         () => {
           fetchLogs();
         }
@@ -319,12 +327,13 @@ export default function DeviceDetail() {
   }
 
   // Check if device is online based on status and last_seen_at (5 minute timeout)
+  const lastSeen = device.last_seen_at || device.last_seen;
   const isOnline = device.status === 'online' && 
-    device.last_seen_at && 
-    new Date(device.last_seen_at).getTime() > Date.now() - 5 * 60 * 1000;
+    lastSeen !== null && 
+    new Date(lastSeen).getTime() > Date.now() - 5 * 60 * 1000;
 
-  const lastSeenText = device.last_seen_at 
-    ? new Date(device.last_seen_at).toLocaleString('uk-UA')
+  const lastSeenText = lastSeen
+    ? new Date(lastSeen).toLocaleString('uk-UA')
     : 'Немає даних';
 
   return (
