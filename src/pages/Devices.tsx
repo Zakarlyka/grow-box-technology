@@ -394,19 +394,21 @@ const Devices = () => {
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-muted-foreground">Керування</h4>
                   <div className="grid grid-cols-2 gap-2">
-                    <div
+                  <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleControl(device.id, 'light', getControlValue(device.id, 'light'));
+                        if (device.status === 'online') {
+                          toggleControl(device.id, 'relay_1', getControlValue(device.id, 'relay_1'));
+                        }
                       }}
                       className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'light')
+                        getControlValue(device.id, 'relay_1')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
                       } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
-                        <Lightbulb className={`h-4 w-4 ${getControlValue(device.id, 'light') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <Lightbulb className={`h-4 w-4 ${getControlValue(device.id, 'relay_1') ? 'text-accent' : 'text-muted-foreground'}`} />
                         <span className="text-sm font-medium">Освітлення</span>
                       </div>
                     </div>
@@ -414,16 +416,18 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleControl(device.id, 'heater', getControlValue(device.id, 'heater'));
+                        if (device.status === 'online') {
+                          toggleControl(device.id, 'relay_2', getControlValue(device.id, 'relay_2'));
+                        }
                       }}
                       className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'heater')
+                        getControlValue(device.id, 'relay_2')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
                       } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
-                        <Flame className={`h-4 w-4 ${getControlValue(device.id, 'heater') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <Flame className={`h-4 w-4 ${getControlValue(device.id, 'relay_2') ? 'text-accent' : 'text-muted-foreground'}`} />
                         <span className="text-sm font-medium">Нагрів</span>
                       </div>
                     </div>
@@ -431,16 +435,18 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleControl(device.id, 'water', getControlValue(device.id, 'water'));
+                        if (device.status === 'online') {
+                          toggleControl(device.id, 'relay_3', getControlValue(device.id, 'relay_3'));
+                        }
                       }}
                       className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'water')
+                        getControlValue(device.id, 'relay_3')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
                       } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
-                        <Droplets className={`h-4 w-4 ${getControlValue(device.id, 'water') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <Droplets className={`h-4 w-4 ${getControlValue(device.id, 'relay_3') ? 'text-accent' : 'text-muted-foreground'}`} />
                         <span className="text-sm font-medium">Полив</span>
                       </div>
                     </div>
@@ -448,16 +454,18 @@ const Devices = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleControl(device.id, 'fan', getControlValue(device.id, 'fan'));
+                        if (device.status === 'online') {
+                          toggleControl(device.id, 'relay_5', getControlValue(device.id, 'relay_5'));
+                        }
                       }}
                       className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'fan')
+                        getControlValue(device.id, 'relay_5')
                           ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
                           : 'bg-muted/20 border-border/50'
                       } ${device.status === 'offline' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
                     >
                       <div className="flex items-center space-x-2">
-                        <Wind className={`h-4 w-4 ${getControlValue(device.id, 'fan') ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <Wind className={`h-4 w-4 ${getControlValue(device.id, 'relay_5') ? 'text-accent' : 'text-muted-foreground'}`} />
                         <span className="text-sm font-medium">Вентилятор</span>
                       </div>
                     </div>

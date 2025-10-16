@@ -80,6 +80,7 @@ export default function DeviceDetail() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [loadingControls, setLoadingControls] = useState<Set<string>>(new Set());
 
   const fetchDevice = async () => {
     if (!id || !user) return;
@@ -220,7 +221,9 @@ export default function DeviceDetail() {
   }, [id]);
 
   const toggleControl = async (controlName: string, currentValue: boolean) => {
-    if (!id) return;
+    if (!id || !isOnline) return;
+
+    setLoadingControls(prev => new Set(prev).add(controlName));
 
     try {
       const existingControl = controls.find(c => c.control_name === controlName);
@@ -255,6 +258,12 @@ export default function DeviceDetail() {
         title: "Помилка",
         description: "Не вдалося змінити стан",
         variant: "destructive",
+      });
+    } finally {
+      setLoadingControls(prev => {
+        const next = new Set(prev);
+        next.delete(controlName);
+        return next;
       });
     }
   };
@@ -397,59 +406,79 @@ export default function DeviceDetail() {
               <CardTitle>Керування пристроєм</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <Card className={`p-4 transition-all ${getControlValue('light') ? 'bg-primary/10 border-primary' : ''}`}>
+              <Card className={`p-4 transition-all ${getControlValue('relay_1') ? 'bg-primary/10 border-primary' : ''} ${!isOnline ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <Lightbulb className={`h-6 w-6 ${getControlValue('light') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Lightbulb className={`h-6 w-6 ${getControlValue('relay_1') ? 'text-primary' : 'text-muted-foreground'}`} />
                   <Switch
-                    checked={getControlValue('light')}
-                    onCheckedChange={() => toggleControl('light', getControlValue('light'))}
+                    checked={getControlValue('relay_1')}
+                    disabled={!isOnline || loadingControls.has('relay_1')}
+                    onCheckedChange={() => toggleControl('relay_1', getControlValue('relay_1'))}
                   />
                 </div>
-                <p className="text-sm font-medium">💡 Освітлення</p>
+                <p className="text-sm font-medium">
+                  💡 Освітлення
+                  {loadingControls.has('relay_1') && <span className="ml-2 animate-spin">⏳</span>}
+                </p>
               </Card>
 
-              <Card className={`p-4 transition-all ${getControlValue('heater') ? 'bg-primary/10 border-primary' : ''}`}>
+              <Card className={`p-4 transition-all ${getControlValue('relay_2') ? 'bg-primary/10 border-primary' : ''} ${!isOnline ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <Flame className={`h-6 w-6 ${getControlValue('heater') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Flame className={`h-6 w-6 ${getControlValue('relay_2') ? 'text-primary' : 'text-muted-foreground'}`} />
                   <Switch
-                    checked={getControlValue('heater')}
-                    onCheckedChange={() => toggleControl('heater', getControlValue('heater'))}
+                    checked={getControlValue('relay_2')}
+                    disabled={!isOnline || loadingControls.has('relay_2')}
+                    onCheckedChange={() => toggleControl('relay_2', getControlValue('relay_2'))}
                   />
                 </div>
-                <p className="text-sm font-medium">🔥 Нагрів</p>
+                <p className="text-sm font-medium">
+                  🔥 Обігрів
+                  {loadingControls.has('relay_2') && <span className="ml-2 animate-spin">⏳</span>}
+                </p>
               </Card>
 
-              <Card className={`p-4 transition-all ${getControlValue('water') ? 'bg-primary/10 border-primary' : ''}`}>
+              <Card className={`p-4 transition-all ${getControlValue('relay_3') ? 'bg-primary/10 border-primary' : ''} ${!isOnline ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <Droplets className={`h-6 w-6 ${getControlValue('water') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Droplets className={`h-6 w-6 ${getControlValue('relay_3') ? 'text-primary' : 'text-muted-foreground'}`} />
                   <Switch
-                    checked={getControlValue('water')}
-                    onCheckedChange={() => toggleControl('water', getControlValue('water'))}
+                    checked={getControlValue('relay_3')}
+                    disabled={!isOnline || loadingControls.has('relay_3')}
+                    onCheckedChange={() => toggleControl('relay_3', getControlValue('relay_3'))}
                   />
                 </div>
-                <p className="text-sm font-medium">💧 Полив</p>
+                <p className="text-sm font-medium">
+                  💧 Полив
+                  {loadingControls.has('relay_3') && <span className="ml-2 animate-spin">⏳</span>}
+                </p>
               </Card>
 
-              <Card className={`p-4 transition-all ${getControlValue('humidifier') ? 'bg-primary/10 border-primary' : ''}`}>
+              <Card className={`p-4 transition-all ${getControlValue('relay_4') ? 'bg-primary/10 border-primary' : ''} ${!isOnline ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <CloudRain className={`h-6 w-6 ${getControlValue('humidifier') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <CloudRain className={`h-6 w-6 ${getControlValue('relay_4') ? 'text-primary' : 'text-muted-foreground'}`} />
                   <Switch
-                    checked={getControlValue('humidifier')}
-                    onCheckedChange={() => toggleControl('humidifier', getControlValue('humidifier'))}
+                    checked={getControlValue('relay_4')}
+                    disabled={!isOnline || loadingControls.has('relay_4')}
+                    onCheckedChange={() => toggleControl('relay_4', getControlValue('relay_4'))}
                   />
                 </div>
-                <p className="text-sm font-medium">🌫 Зволожувач</p>
+                <p className="text-sm font-medium">
+                  🌫 Зволожувач
+                  {loadingControls.has('relay_4') && <span className="ml-2 animate-spin">⏳</span>}
+                </p>
               </Card>
 
-              <Card className={`p-4 transition-all ${getControlValue('fan') ? 'bg-primary/10 border-primary' : ''}`}>
+              <Card className={`p-4 transition-all ${getControlValue('relay_5') ? 'bg-primary/10 border-primary' : ''} ${!isOnline ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <Wind className={`h-6 w-6 ${getControlValue('fan') ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Wind className={`h-6 w-6 ${getControlValue('relay_5') ? 'text-primary' : 'text-muted-foreground'}`} />
                   <Switch
-                    checked={getControlValue('fan')}
-                    onCheckedChange={() => toggleControl('fan', getControlValue('fan'))}
+                    checked={getControlValue('relay_5')}
+                    disabled={!isOnline || loadingControls.has('relay_5')}
+                    onCheckedChange={() => toggleControl('relay_5', getControlValue('relay_5'))}
                   />
                 </div>
-                <p className="text-sm font-medium">💨 Вентилятор</p>
+                <p className="text-sm font-medium">
+                  💨 Вентилятор
+                  {loadingControls.has('relay_5') && <span className="ml-2 animate-spin">⏳</span>}
+                </p>
               </Card>
             </CardContent>
           </Card>
