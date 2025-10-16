@@ -5,20 +5,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Trash2, Lightbulb, Flame, Droplets, Wind, CloudRain, Thermometer } from 'lucide-react';
+import { RefreshCw, Plus, Thermometer, Droplets } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface Device {
   id: string;
@@ -28,33 +18,20 @@ interface Device {
   last_temp?: number | null;
   last_hum?: number | null;
   last_seen: string | null;
-  last_seen_at?: string | null;
-  updated_at: string;
   status: string;
   user_id: string;
-}
-
-interface DeviceControl {
-  id: string;
-  device_id: string;
-  control_name: string;
-  control_type: string;
-  value: boolean;
-  intensity?: number;
+  created_at: string;
 }
 
 const Devices = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [devices, setDevices] = useState<Device[]>([]);
-  const [controls, setControls] = useState<Record<string, DeviceControl[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrData, setQrData] = useState<{ token: string; url: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
 
   const fetchDevices = async () => {
     if (!user) return;
@@ -64,41 +41,17 @@ const Devices = () => {
         .from('devices')
         .select('*')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching devices:', error);
-        toast({
-          title: "Помилка",
-          description: "Не вдалося завантажити пристрої",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      if (error) throw error;
       setDevices(data || []);
-      
-      // Fetch controls for all devices
-      if (data && data.length > 0) {
-        const deviceIds = data.map(d => d.id);
-        const { data: controlsData, error: controlsError } = await supabase
-          .from('device_controls')
-          .select('*')
-          .in('device_id', deviceIds);
-
-        if (!controlsError && controlsData) {
-          const controlsByDevice: Record<string, DeviceControl[]> = {};
-          controlsData.forEach(control => {
-            if (!controlsByDevice[control.device_id]) {
-              controlsByDevice[control.device_id] = [];
-            }
-            controlsByDevice[control.device_id].push(control);
-          });
-          setControls(controlsByDevice);
-        }
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      toast({
+        title: "Помилка",
+        description: "Не вдалося завантажити пристрої",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -106,10 +59,9 @@ const Devices = () => {
   };
 
   const isDeviceOnline = (device: Device): boolean => {
-    const lastSeen = device.last_seen_at || device.last_seen;
     return device.status === 'online' && 
-      lastSeen !== null &&
-      new Date(lastSeen).getTime() > Date.now() - 5 * 60 * 1000;
+      device.last_seen !== null &&
+      new Date(device.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
   };
 
   useEffect(() => {
@@ -117,7 +69,7 @@ const Devices = () => {
 
     fetchDevices();
 
-    // Set up Realtime subscription for devices
+    // Realtime subscription for devices
     const devicesChannel = supabase
       .channel('devices-changes')
       .on(
@@ -129,32 +81,20 @@ const Devices = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Devices realtime update:', payload);
-          fetchDevices();
-        }
-      )
-      .subscribe();
-
-    // Set up Realtime subscription for device_controls
-    const controlsChannel = supabase
-      .channel('controls-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'device_controls'
-        },
-        (payload) => {
-          console.log('Controls realtime update:', payload);
-          fetchDevices();
+          console.log('Device update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setDevices(prev => [...prev, payload.new as Device]);
+          } else if (payload.eventType === 'UPDATE') {
+            setDevices(prev => prev.map(d => d.id === payload.new.id ? payload.new as Device : d));
+          } else if (payload.eventType === 'DELETE') {
+            setDevices(prev => prev.filter(d => d.id !== payload.old.id));
+          }
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(devicesChannel);
-      supabase.removeChannel(controlsChannel);
     };
   }, [user]);
 
@@ -172,15 +112,7 @@ const Devices = () => {
         body: { user_id: user.id }
       });
 
-      if (error) {
-        console.error('Error generating QR:', error);
-        toast({
-          title: "Помилка",
-          description: "Не вдалося створити код для підключення",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) throw error;
 
       if (data?.device_token) {
         const qrUrl = `http://192.168.4.1/?token=${data.device_token}`;
@@ -189,104 +121,18 @@ const Devices = () => {
         
         toast({
           title: "QR-код створено",
-          description: "Скануйте код на вашому пристрої",
+          description: "Скануйте код на вашому пристрої ESP8266",
         });
       }
-    } catch (err) {
-      console.error('Add device error:', err);
+    } catch (error) {
+      console.error('Add device error:', error);
       toast({
         title: "Помилка",
-        description: "Сталася непередбачена помилка",
+        description: "Не вдалося створити код для підключення",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('uk-UA');
-  };
-
-  const toggleControl = async (deviceId: string, controlName: string, currentValue: boolean) => {
-    try {
-      // Check if control exists
-      const deviceControls = controls[deviceId] || [];
-      const existingControl = deviceControls.find(c => c.control_name === controlName);
-
-      if (existingControl) {
-        // Update existing control
-        const { error } = await supabase
-          .from('device_controls')
-          .update({ value: !currentValue })
-          .eq('id', existingControl.id);
-
-        if (error) throw error;
-      } else {
-        // Create new control
-        const { error } = await supabase
-          .from('device_controls')
-          .insert({
-            device_id: deviceId,
-            control_name: controlName,
-            control_type: 'switch',
-            value: true
-          });
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: "Успіх",
-        description: `${controlName} ${!currentValue ? 'увімкнено' : 'вимкнено'}`,
-      });
-    } catch (error) {
-      console.error('Toggle control error:', error);
-      toast({
-        title: "Помилка",
-        description: "Не вдалося змінити стан керування",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getControlValue = (deviceId: string, controlName: string): boolean => {
-    const deviceControls = controls[deviceId] || [];
-    const control = deviceControls.find(c => c.control_name === controlName);
-    return control?.value || false;
-  };
-
-  const handleDeleteClick = (deviceId: string) => {
-    setDeviceToDelete(deviceId);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deviceToDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from('devices')
-        .delete()
-        .eq('id', deviceToDelete);
-
-      if (error) throw error;
-
-      toast({
-        title: "Пристрій видалено",
-        description: "Пристрій успішно видалено з вашого облікового запису",
-      });
-
-      setDeleteDialogOpen(false);
-      setDeviceToDelete(null);
-      fetchDevices();
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast({
-        title: "Помилка",
-        description: "Не вдалося видалити пристрій",
-        variant: "destructive",
-      });
     }
   };
 
@@ -313,7 +159,7 @@ const Devices = () => {
             Мої пристрої
           </h1>
           <p className="text-muted-foreground">
-            Керуйте своїми ESP32 GrowBox пристроями
+            Керуйте своїми ESP8266 GrowBox пристроями в реальному часі
           </p>
         </div>
         <div className="flex gap-2">
@@ -325,7 +171,7 @@ const Devices = () => {
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
-          <Button onClick={handleAddDevice} disabled={isGenerating} className="gradient-primary">
+          <Button onClick={handleAddDevice} disabled={isGenerating}>
             <Plus className="mr-2 h-4 w-4" />
             Додати пристрій
           </Button>
@@ -347,212 +193,101 @@ const Devices = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          {devices.map((device) => (
-            <Card 
-              key={device.id} 
-              className="gradient-card border-border/50 hover:shadow-lg transition-all duration-300 cursor-pointer"
-              onClick={() => navigate(`/device/${device.id}`)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{device.name || device.device_id}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{device.location || 'Не вказано'}</p>
-                  </div>
-                  <Badge
-                    variant={isDeviceOnline(device) ? 'default' : 'destructive'}
-                    className={isDeviceOnline(device) ? 'animate-pulse-glow' : ''}
-                  >
-                    {isDeviceOnline(device) ? '🟢 Online' : '🔴 Offline'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Оновлено: {formatDate(device.updated_at)}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Sensor Data */}
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
-                  <div className="flex items-center space-x-2">
-                    <Thermometer className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Температура</p>
-                      <p className="text-sm font-medium">
-                        {device.last_temp !== null && device.last_temp !== undefined 
-                          ? `${device.last_temp}°C` 
-                          : '-'}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {devices.map((device) => {
+            const online = isDeviceOnline(device);
+            
+            return (
+              <Card 
+                key={device.id} 
+                className={`transition-all duration-300 cursor-pointer hover:shadow-xl ${
+                  online ? 'border-primary/50' : 'border-border'
+                }`}
+                onClick={() => navigate(`/device/${device.id}`)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg mb-1">
+                        {device.name || device.device_id}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {device.location || 'Локацію не вказано'}
                       </p>
                     </div>
+                    <Badge
+                      variant={online ? 'default' : 'destructive'}
+                      className={online ? 'animate-pulse' : ''}
+                    >
+                      {online ? '🟢 Online' : '🔴 Offline'}
+                    </Badge>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Droplets className="h-4 w-4 text-accent" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Вологість</p>
-                      <p className="text-sm font-medium">
-                        {device.last_hum !== null && device.last_hum !== undefined 
-                          ? `${device.last_hum}%` 
-                          : '-'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Controls Preview */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">Керування</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                  <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDeviceOnline(device)) {
-                          toggleControl(device.id, 'relay_1', getControlValue(device.id, 'relay_1'));
-                        }
-                      }}
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'relay_1')
-                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
-                          : 'bg-muted/20 border-border/50'
-                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Lightbulb className={`h-4 w-4 ${getControlValue(device.id, 'relay_1') ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">Освітлення</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Sensor readings */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
+                      <Thermometer className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Температура</p>
+                        <p className="text-lg font-bold">
+                          {device.last_temp !== null && device.last_temp !== undefined 
+                            ? `${device.last_temp}°C` 
+                            : '--'}
+                        </p>
                       </div>
                     </div>
-
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDeviceOnline(device)) {
-                          toggleControl(device.id, 'relay_2', getControlValue(device.id, 'relay_2'));
-                        }
-                      }}
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'relay_2')
-                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
-                          : 'bg-muted/20 border-border/50'
-                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Flame className={`h-4 w-4 ${getControlValue(device.id, 'relay_2') ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">Нагрів</span>
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDeviceOnline(device)) {
-                          toggleControl(device.id, 'relay_3', getControlValue(device.id, 'relay_3'));
-                        }
-                      }}
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'relay_3')
-                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
-                          : 'bg-muted/20 border-border/50'
-                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Droplets className={`h-4 w-4 ${getControlValue(device.id, 'relay_3') ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">Полив</span>
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDeviceOnline(device)) {
-                          toggleControl(device.id, 'relay_5', getControlValue(device.id, 'relay_5'));
-                        }
-                      }}
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        getControlValue(device.id, 'relay_5')
-                          ? 'bg-gradient-to-r from-accent/20 to-primary/20 border-accent/50 glow-accent'
-                          : 'bg-muted/20 border-border/50'
-                      } ${!isDeviceOnline(device) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Wind className={`h-4 w-4 ${getControlValue(device.id, 'relay_5') ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <span className="text-sm font-medium">Вентилятор</span>
+                    
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
+                      <Droplets className="h-5 w-5 text-accent" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Вологість</p>
+                        <p className="text-lg font-bold">
+                          {device.last_hum !== null && device.last_hum !== undefined 
+                            ? `${device.last_hum}%` 
+                            : '--'}
+                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Delete Button */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={(e) => {
+                  <Button variant="outline" className="w-full" onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteClick(device.id);
-                  }}
-                  className="w-full"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Видалити пристрій
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                    navigate(`/device/${device.id}`);
+                  }}>
+                    Відкрити панель керування
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
+      {/* QR Code Modal */}
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Підключення пристрою</DialogTitle>
+            <DialogTitle>QR-код для підключення пристрою</DialogTitle>
             <DialogDescription>
-              Скануйте QR-код на вашому пристрої або використайте токен вручну
+              Скануйте цей QR-код на вашому ESP8266 пристрої для реєстрації
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            {qrData && (
-              <>
-                <div className="bg-white p-4 rounded-lg">
-                  <QRCodeSVG value={qrData.url} size={256} level="H" />
-                </div>
-                <div className="w-full">
-                  <p className="text-sm font-medium mb-2">Токен підключення:</p>
-                  <code className="block w-full p-2 bg-muted rounded text-xs break-all">
-                    {qrData.token}
-                  </code>
-                </div>
-                <div className="w-full text-sm text-muted-foreground">
-                  <p className="font-medium mb-2">Інструкція:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>📲 Підключіться до Wi-Fi "GrowBox-Setup"</li>
-                    <li>🔗 Відскануйте QR-код (токен заповниться автоматично)</li>
-                    <li>🧩 Введіть Wi-Fi та пароль на сторінці пристрою</li>
-                    <li>✅ Пристрій підключиться автоматично і з'явиться у списку</li>
-                  </ol>
-                  <p className="text-xs mt-2">
-                    Або відкрийте вручну: <code className="px-1 py-0.5 bg-muted rounded text-xs">{qrData.url}</code>
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          {qrData && (
+            <div className="flex flex-col items-center gap-4 p-4">
+              <div className="p-4 bg-white rounded-lg">
+                <QRCodeSVG value={qrData.url} size={256} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Або введіть токен вручну:</p>
+                <code className="text-xs bg-muted p-2 rounded block break-all">
+                  {qrData.token}
+                </code>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Видалити пристрій?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ця дія незворотна. Пристрій буде видалено з вашого облікового запису разом з усіма даними.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Скасувати</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Видалити
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
