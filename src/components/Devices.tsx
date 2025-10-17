@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ import {
   Plus,
   Settings,
   MoreVertical,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -26,103 +27,38 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-interface Device {
-  id: string;
-  name: string;
-  type: string;
-  status: 'online' | 'offline';
-  temperature: number;
-  humidity: number;
-  soilMoisture: number;
-  lightLevel: number;
-  lastSeen: string;
-  controls: {
-    waterPump: boolean;
-    lightSystem: boolean;
-    ventilation: boolean;
-    heater: boolean;
-    lightSchedule: { startTime: string; endTime: string; interval: string; duration: string };
-    fanSpeed: number;
-  };
-}
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useDevices } from '@/hooks/useDevices';
+import { useSensorData } from '@/hooks/useSensorData';
+import { AddDeviceDialog } from './AddDeviceDialog';
 
 export function Devices() {
   const { t } = useTranslation();
-  const [devices, setDevices] = useState<Device[]>([]);
+  const { devices, loading, deleteDevice, fetchDevices } = useDevices();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    const mockDevices: Device[] = [
-      {
-        id: 'esp32-grow-001',
-        name: 'Grow Box Alpha',
-        type: 'ESP32 GrowBox',
-        status: 'online',
-        temperature: 24.5,
-        humidity: 65,
-        soilMoisture: 72,
-        lightLevel: 85,
-        lastSeen: '2 minutes ago',
-        controls: {
-          waterPump: false,
-          lightSystem: true,
-          ventilation: true,
-          heater: false,
-          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
-          fanSpeed: 60,
-        }
-      },
-      {
-        id: 'esp32-grow-002',
-        name: 'Grow Box Beta',
-        type: 'ESP32 GrowBox',
-        status: 'online',
-        temperature: 23.1,
-        humidity: 68,
-        soilMoisture: 68,
-        lightLevel: 90,
-        lastSeen: '1 minute ago',
-        controls: {
-          waterPump: true,
-          lightSystem: true,
-          ventilation: false,
-          heater: true,
-          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
-          fanSpeed: 40,
-        }
-      },
-      {
-        id: 'esp32-grow-003',
-        name: 'Grow Box Gamma',
-        type: 'ESP32 GrowBox',
-        status: 'offline',
-        temperature: 22.8,
-        humidity: 62,
-        soilMoisture: 45,
-        lightLevel: 0,
-        lastSeen: '2 hours ago',
-        controls: {
-          waterPump: false,
-          lightSystem: false,
-          ventilation: false,
-          heater: false,
-          lightSchedule: { startTime: '18:00', endTime: '22:00', interval: 'off', duration: '30' },
-          fanSpeed: 0,
-        }
-      }
-    ];
-    setDevices(mockDevices);
-  }, []);
+  const handleDeleteClick = (deviceId: string) => {
+    setDeviceToDelete(deviceId);
+    setDeleteDialogOpen(true);
+  };
 
-  const updateDeviceControl = (deviceId: string, controlKey: string, value: boolean | number | { startTime: string; endTime: string; interval: string; duration: string }) => {
-    setDevices(prev => prev.map(device =>
-      device.id === deviceId
-        ? {
-            ...device,
-            controls: { ...device.controls, [controlKey]: value }
-          }
-        : device
-    ));
+  const handleDeleteConfirm = async () => {
+    if (deviceToDelete) {
+      await deleteDevice(deviceToDelete);
+      setDeleteDialogOpen(false);
+      setDeviceToDelete(null);
+    }
   };
 
   const ControlCard = ({
@@ -173,232 +109,139 @@ export function Devices() {
             Manage and control your ESP32 devices
           </p>
         </div>
-        <Button className="gradient-primary">
+        <Button className="gradient-primary" onClick={() => setAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t('devices.addDevice')}
         </Button>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        {devices.map((device) => (
-          <Card key={device.id} className="gradient-card border-border/50 hover:shadow-lg transition-all duration-300">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">{device.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{device.id}</p>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : devices.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">Пристрої не знайдено</p>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Додати перший пристрій
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {devices.map((device) => {
+            const lastSeen = device.last_seen 
+              ? new Date(device.last_seen).toLocaleString('uk-UA')
+              : 'Невідомо';
+            
+            return (
+            <Card key={device.id} className="gradient-card border-border/50 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{device.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{device.device_id}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge
+                      variant={device.status === 'online' ? 'default' : 'destructive'}
+                      className={device.status === 'online' ? 'animate-pulse-glow' : ''}
+                    >
+                      {device.status === 'online' ? t('devices.online') : t('devices.offline')}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Settings className="mr-2 h-4 w-4" />
+                          Налаштування
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Activity className="mr-2 h-4 w-4" />
+                          Переглянути логи
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(device.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Видалити
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge
-                    variant={device.status === 'online' ? 'default' : 'destructive'}
-                    className={device.status === 'online' ? 'animate-pulse-glow' : ''}
-                  >
-                    {device.status === 'online' ? t('devices.online') : t('devices.offline')}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Configure
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Activity className="mr-2 h-4 w-4" />
-                        View Logs
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('devices.lastSeen')}: {device.lastSeen}
-              </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('devices.lastSeen')}: {lastSeen}
+                </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Sensor Data */}
               <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
                 <SensorValue
                   label={t('dashboard.temperature')}
-                  value={device.temperature.toFixed(1)}
+                  value={device.last_temp?.toFixed(1) || '--'}
                   unit="°C"
                   icon={Thermometer}
                   color="text-primary"
                 />
                 <SensorValue
                   label={t('dashboard.humidity')}
-                  value={device.humidity}
+                  value={device.last_hum?.toFixed(0) || '--'}
                   unit="%"
                   icon={Droplets}
                   color="text-accent"
                 />
                 <SensorValue
                   label={t('dashboard.soilMoisture')}
-                  value={device.soilMoisture}
+                  value="--"
                   unit="%"
                   icon={Sprout}
                   color="text-success"
                 />
                 <SensorValue
                   label={t('dashboard.lightLevel')}
-                  value={device.lightLevel}
+                  value="--"
                   unit="%"
                   icon={Sun}
                   color="text-warning"
                 />
               </div>
-              {/* Controls */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-muted-foreground">{t('devices.controls')}</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <ControlCard
-                    title={t('controls.waterPump')}
-                    icon={Power}
-                    isActive={device.controls.waterPump}
-                    onToggle={(checked: boolean) => updateDeviceControl(device.id, 'waterPump', checked)}
-                    deviceId={device.id}
-                    disabled={device.status === 'offline'}
-                  />
-                  <ControlCard
-                    title={t('controls.lightSystem')}
-                    icon={Lightbulb}
-                    isActive={device.controls.lightSystem}
-                    onToggle={(checked: boolean) => updateDeviceControl(device.id, 'lightSystem', checked)}
-                    deviceId={device.id}
-                    disabled={device.status === 'offline'}
-                  />
-                  <ControlCard
-                    title={t('controls.ventilation')}
-                    icon={Fan}
-                    isActive={device.controls.ventilation}
-                    onToggle={(checked: boolean) => updateDeviceControl(device.id, 'ventilation', checked)}
-                    deviceId={device.id}
-                    disabled={device.status === 'offline'}
-                  />
-                  <ControlCard
-                    title={t('controls.heater')}
-                    icon={Thermometer}
-                    isActive={device.controls.heater}
-                    onToggle={(checked: boolean) => updateDeviceControl(device.id, 'heater', checked)}
-                    deviceId={device.id}
-                    disabled={device.status === 'offline'}
-                  />
-                </div>
-                {/* Light Timer */}
-                {device.status === 'online' && device.controls.lightSystem && (
-                  <div className="space-y-3 pt-2">
-                    <div className="text-center p-3 bg-gray-900 rounded-lg">
-                      <div className="text-lg font-mono text-green-400">
-                        {device.controls.lightSchedule.interval === 'off'
-                          ? `${t('controls.on')}: ${device.controls.lightSchedule.startTime} - ${t('controls.off')}: ${device.controls.lightSchedule.endTime}`
-                          : `${t('controls.every')} ${device.controls.lightSchedule.interval}h ${t('controls.for')} ${device.controls.lightSchedule.duration}min`}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{t('controls.currentSchedule')}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        type="time"
-                        value={device.controls.lightSchedule.startTime}
-                        onChange={(e) => updateDeviceControl(device.id, 'lightSchedule', {
-                          ...device.controls.lightSchedule,
-                          startTime: e.target.value
-                        })}
-                        disabled={!device.controls.lightSystem}
-                      />
-                      <Input
-                        type="time"
-                        value={device.controls.lightSchedule.endTime}
-                        onChange={(e) => updateDeviceControl(device.id, 'lightSchedule', {
-                          ...device.controls.lightSchedule,
-                          endTime: e.target.value
-                        })}
-                        disabled={!device.controls.lightSystem}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Select
-                        value={device.controls.lightSchedule.interval}
-                        onValueChange={(value) => updateDeviceControl(device.id, 'lightSchedule', {
-                          ...device.controls.lightSchedule,
-                          interval: value
-                        })}
-                        disabled={!device.controls.lightSystem}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('controls.everyHour')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="off">{t('controls.simpleTimer')}</SelectItem>
-                          <SelectItem value="1">1 {t('controls.hour')}</SelectItem>
-                          <SelectItem value="2">2 {t('controls.hours')}</SelectItem>
-                          <SelectItem value="3">3 {t('controls.hours')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={device.controls.lightSchedule.duration}
-                        onValueChange={(value) => updateDeviceControl(device.id, 'lightSchedule', {
-                          ...device.controls.lightSchedule,
-                          duration: value
-                        })}
-                        disabled={!device.controls.lightSystem || device.controls.lightSchedule.interval === 'off'}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('controls.forMinutes')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 {t('controls.minutes')}</SelectItem>
-                          <SelectItem value="30">30 {t('controls.minutes')}</SelectItem>
-                          <SelectItem value="60">60 {t('controls.minutes')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => updateDeviceControl(device.id, 'lightSchedule', {
-                          ...device.controls.lightSchedule
-                        })}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        disabled={!device.controls.lightSystem}
-                      >
-                        {t('controls.setTimer')}
-                      </Button>
-                      <Button
-                        onClick={() => updateDeviceControl(device.id, 'lightSystem', false)}
-                        variant="destructive"
-                        className="flex-1"
-                        disabled={!device.controls.lightSystem}
-                      >
-                        {t('controls.off')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {/* Fan Speed Slider */}
-                {device.status === 'online' && (
-                  <div className="space-y-3 pt-2">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm text-muted-foreground">{t('controls.fanSpeed')}</label>
-                        <span className="text-sm text-accent">{device.controls.fanSpeed}%</span>
-                      </div>
-                      <Slider
-                        value={[device.controls.fanSpeed]}
-                        onValueChange={(value) => updateDeviceControl(device.id, 'fanSpeed', value[0])}
-                        max={100}
-                        step={1}
-                        className="w-full"
-                        disabled={!device.controls.ventilation}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              <p className="text-muted-foreground text-center py-4 text-sm">
+                Керування пристроєм буде доступне після першого підключення
+              </p>
             </CardContent>
           </Card>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      <AddDeviceDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onDeviceAdded={fetchDevices}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Видалити пристрій?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Цю дію неможливо скасувати. Пристрій буде видалено назавжди.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
+              Видалити
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
