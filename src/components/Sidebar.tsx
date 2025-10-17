@@ -1,15 +1,18 @@
-import { LayoutDashboard, BarChart3, Wifi, Sprout, Settings, Shield, List } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, BarChart3, Wifi, Settings, Shield, List, LogOut } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import logoImage from '@/assets/logo-agro-hogwards.png';
 
 export const Sidebar = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin, isSuperAdmin } = useUserRole();
+  const navigate = useNavigate();
   const [onlineCount, setOnlineCount] = useState(0);
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
 
@@ -67,14 +70,21 @@ export const Sidebar = () => {
     };
   }, [user]);
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   return (
     <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <NavLink to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Sprout className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src={logoImage} 
+            alt="Agro Hogwards Logo" 
+            className="w-10 h-10 object-contain"
+          />
           <span className="text-xl font-bold text-accent">Agro Hogwards</span>
         </NavLink>
         <p className="text-xs text-muted-foreground mt-2">Керуйте ESP32 GrowBox пристроями</p>
@@ -94,7 +104,7 @@ export const Sidebar = () => {
           }
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span>Dashboard</span>
+          <span>Мої пристрої</span>
         </NavLink>
 
         <NavLink
@@ -192,6 +202,16 @@ export const Sidebar = () => {
             </Badge>
           </div>
         </div>
+
+        {/* Sign Out Button */}
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleSignOut}
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Вийти</span>
+        </Button>
       </div>
     </aside>
   );

@@ -1,6 +1,7 @@
-import { Settings, Sprout } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import logoImage from '@/assets/logo-agro-hogwards.png';
 
 interface HeaderProps {
   onSettingsClick?: () => void;
@@ -24,9 +25,11 @@ export function Header({ onSettingsClick, onLogoClick }: HeaderProps) {
           onClick={handleLogoClick}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Sprout className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src={logoImage} 
+            alt="Agro Hogwards Logo" 
+            className="w-10 h-10 object-contain"
+          />
           <span className="text-xl font-bold text-accent">Agro Hogwards</span>
         </button>
 
