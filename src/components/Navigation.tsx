@@ -22,15 +22,15 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
   const menuItems = [
     {
-      id: 'dashboard',
-      label: t('navigation.dashboard'),
-      icon: LayoutDashboard,
+      id: 'devices',
+      label: 'Мої пристрої',
+      icon: Cpu,
       roles: ['user', 'developer', 'admin']
     },
     {
-      id: 'devices',
-      label: t('navigation.devices'),
-      icon: Cpu,
+      id: 'dashboard',
+      label: t('navigation.dashboard'),
+      icon: LayoutDashboard,
       roles: ['user', 'developer', 'admin']
     },
     {

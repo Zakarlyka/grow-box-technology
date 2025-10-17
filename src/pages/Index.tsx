@@ -11,7 +11,7 @@ import { Settings } from '@/pages/Settings';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('devices');
   const { profile } = useAuth();
 
   const renderContent = () => {
