@@ -22,6 +22,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart-simpl
 import { useDevices } from '@/hooks/useDevices';
 import { useSensorData } from '@/hooks/useSensorData';
 import { AddDeviceDialog } from './AddDeviceDialog';
+import { DeviceCard } from './DeviceCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,113 +160,42 @@ export function Dashboard() {
         />
         <StatCard
           title={t('dashboard.temperature')}
-          value="24.2"
+          value={devices.length > 0 && devices[0].last_temp ? devices[0].last_temp.toFixed(1) : '--'}
           unit="°C"
           icon={Thermometer}
           trend={true}
         />
         <StatCard
           title={t('dashboard.humidity')}
-          value="65"
+          value={devices.length > 0 && devices[0].last_hum ? devices[0].last_hum.toFixed(0) : '--'}
           unit="%"
           icon={Droplets}
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Real-time Chart */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Завантаження пристроїв...</p>
+        </div>
+      ) : devices.length === 0 ? (
         <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <span>{t('dashboard.realTimeData')}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ChartContainer config={{}}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip 
-                      content={<ChartTooltipContent />}
-                    />
-                    <Line type="monotone" dataKey="temperature" stroke="hsl(var(--primary))" strokeWidth={2} />
-                    <Line type="monotone" dataKey="humidity" stroke="hsl(var(--accent))" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Cpu className="h-16 w-16 text-muted-foreground mb-4" />
+            <p className="text-xl font-semibold mb-2">Немає пристроїв</p>
+            <p className="text-muted-foreground mb-4">Додайте свій перший пристрій для моніторингу</p>
+            <Button onClick={() => setAddDialogOpen(true)} className="gradient-primary">
+              <Plus className="mr-2 h-4 w-4" />
+              Додати пристрій
+            </Button>
           </CardContent>
         </Card>
-
-        {/* Device Status */}
-        <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Cpu className="h-5 w-5 text-accent" />
-              <span>{t('dashboard.deviceStatus')}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="text-center py-4 text-muted-foreground">Завантаження...</div>
-            ) : devices.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-2">Пристрої не знайдено</p>
-                <Button onClick={() => setAddDialogOpen(true)} size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Додати пристрій
-                </Button>
-              </div>
-            ) : (
-              devices.map((device) => {
-                const lastSeen = device.last_seen 
-                  ? new Date(device.last_seen).toLocaleString('uk-UA')
-                  : 'Невідомо';
-                
-                return (
-                  <div key={device.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className={`h-3 w-3 rounded-full ${
-                        device.status === 'online' ? 'bg-success animate-pulse-glow' : 'bg-destructive'
-                      }`} />
-                      <div>
-                        <p className="text-sm font-medium">{device.name}</p>
-                        <p className="text-xs text-muted-foreground">{lastSeen}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={device.status === 'online' ? 'default' : 'destructive'}>
-                        {device.status === 'online' ? (
-                          <><Wifi className="h-3 w-3 mr-1" />{t('devices.online')}</>
-                        ) : (
-                          <><WifiOff className="h-3 w-3 mr-1" />{t('devices.offline')}</>
-                        )}
-                      </Badge>
-                      {device.status === 'online' && device.last_temp && (
-                        <div className="text-xs text-muted-foreground">
-                          {device.last_temp.toFixed(1)}°C
-                        </div>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClick(device.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {devices.map((device) => (
+            <DeviceCard key={device.id} device={device} />
+          ))}
+        </div>
+      )}
 
       <AddDeviceDialog
         open={addDialogOpen}
