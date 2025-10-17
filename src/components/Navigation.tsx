@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useUserRole } from '@/hooks/useUserRole';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
@@ -8,8 +8,7 @@ import {
   BarChart3, 
   Wifi, 
   Settings as SettingsIcon, 
-  Code,
-  ShieldCheck
+  Code
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -19,48 +18,50 @@ interface NavigationProps {
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const { t } = useTranslation();
-  const { isAdmin, isSuperAdmin } = useUserRole();
+  const { profile } = useAuth();
 
   const menuItems = [
     {
       id: 'dashboard',
       label: t('navigation.dashboard'),
       icon: LayoutDashboard,
-      showIf: () => true
+      roles: ['user', 'developer', 'admin']
     },
     {
-      id: 'my-devices',
-      label: 'Мої пристрої',
+      id: 'devices',
+      label: t('navigation.devices'),
       icon: Cpu,
-      showIf: () => true
+      roles: ['user', 'developer', 'admin']
+    },
+    {
+      id: 'device-management',
+      label: 'Device Management',
+      icon: Cpu,
+      roles: ['user', 'developer', 'admin']
     },
     {
       id: 'remote-control',
       label: t('navigation.remoteControl'),
       icon: Wifi,
-      showIf: () => true
+      roles: ['user', 'developer', 'admin']
     },
     {
       id: 'analytics',
       label: t('navigation.analytics'),
       icon: BarChart3,
-      showIf: () => true
+      roles: ['user', 'developer', 'admin']
     },
     {
       id: 'developer',
       label: 'Розробник',
       icon: Code,
-      showIf: () => isAdmin || isSuperAdmin
-    },
-    {
-      id: 'admin',
-      label: t('navigation.adminPanel'),
-      icon: ShieldCheck,
-      showIf: () => isAdmin || isSuperAdmin
+      roles: ['developer', 'admin']
     }
   ];
 
-  const visibleItems = menuItems.filter(item => item.showIf());
+  const visibleItems = menuItems.filter(item => 
+    item.roles.includes(profile?.role || 'user')
+  );
 
   return (
     <>

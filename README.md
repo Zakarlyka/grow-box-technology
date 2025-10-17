@@ -52,164 +52,15 @@ npm run dev
 npm run build
 ```
 
-## Підключення ESP8266/ESP32
-
-### Швидка інструкція
-
-1. **Натисни "Додати пристрій"** на Dashboard
-2. **Скануй QR-код** телефоном або **скопіюй deviceId** вручну
-3. **Підключись до GrowBox_Setup**, обери свою Wi-Fi мережу, введи пароль, збери налаштування
-4. **Перезавантаж Arduino/ESP** (натисни кнопку RESET)
-5. **Перейди на сайт**, натисни **"Перевірити підключення"**
-
-### 1. Налаштування Wi-Fi порталу на ESP
-
-Після підключення до Wi-Fi порталу ESP8266, виконайте POST-запит до `/setup` API:
-
-```cpp
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#include <WiFiClientSecure.h>
-#include <ArduinoJson.h>
-
-const char* setupEndpoint = "https://ychnmaaximnoxvwnzrgs.supabase.co/functions/v1/setup";
-const char* authToken = "YOUR_USER_JWT_TOKEN"; // Отримати після авторизації
-const char* deviceKey = "YOUR_SECURE_KEY_MIN_16_CHARS"; // Мінімум 16 символів
-
-void setupDevice() {
-  WiFiClientSecure client;
-  client.setInsecure(); // Для тестування, використовуйте сертифікати у продакшн
-  
-  HTTPClient http;
-  http.begin(client, setupEndpoint);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Authorization", String("Bearer ") + authToken);
-  
-  StaticJsonDocument<256> doc;
-  doc["device_id"] = "ESP-" + String(ESP.getChipId(), HEX);
-  doc["key"] = deviceKey;
-  doc["name"] = "My Grow Box";
-  doc["type"] = "grow_box";
-  doc["location"] = "Room 1";
-  
-  String payload;
-  serializeJson(doc, payload);
-  
-  int httpCode = http.POST(payload);
-  
-  if (httpCode == 201) {
-    Serial.println("Device registered successfully!");
-    // Зберегти device_id в EEPROM для наступних запитів
-  } else if (httpCode == 200) {
-    Serial.println("Device updated!");
-  } else {
-    Serial.printf("Setup failed: %d\n", httpCode);
-    Serial.println(http.getString());
-  }
-  
-  http.end();
-}
-
-void setup() {
-  Serial.begin(115200);
-  
-  // Підключення до WiFi
-  WiFi.begin("your-ssid", "your-password");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nConnected!");
-  
-  // Реєстрація пристрою
-  setupDevice();
-}
-```
-
-### 2. Отримання JWT токена
-
-Для автентифікації запитів використовуйте JWT токен користувача:
-
-1. Увійдіть у веб-додаток
-2. У Developer Tools → Application → Local Storage знайдіть `sb-<project>-auth-token`
-3. Використайте `access_token` для авторизації запитів з ESP
-
-**Важливо:** У продакшн-режимі використовуйте безпечний спосіб зберігання токенів!
-
-### 3. Покрокова інструкція підключення нового пристрою
-
-#### Крок 1: Генерація deviceId та QR-коду на сайті
-1. Відкрийте Dashboard на сайті
-2. Натисніть кнопку **"Додати новий пристрій"**
-3. Система автоматично згенерує унікальний deviceId (формат: `ESP-MGKQP2ME-7YBYHN`)
-4. З'явиться діалогове вікно з QR-кодом та інструкціями
-
-#### Крок 2: Скануйте QR-код або скопіюйте код
-1. **Варіант A**: Скануйте QR-код телефоном - він містить URL `http://192.168.4.1/?deviceId=${deviceId}`
-2. **Варіант B**: Натисніть кнопку **"Копіювати"** біля коду для ручного введення deviceId
-3. Запам'ятайте або збережіть згенерований deviceId (наприклад: `ESP-MGKQP2ME-7YBYHN`)
-
-#### Крок 3: Підключення до GrowBox_Setup
-1. На вашому телефоні або комп'ютері знайдіть WiFi мережу **"GrowBox_Setup"**
-2. Підключіться до неї (пароль за замовчуванням: `12345678`, або без пароля)
-3. Після підключення автоматично відкриється captive portal (веб-сторінка налаштувань)
-4. Якщо сторінка не відкрилася автоматично, відкрийте браузер та перейдіть на **http://192.168.4.1**
-
-#### Крок 4: Введення коду та налаштування WiFi
-1. На сторінці налаштувань ESP введіть згенерований deviceId у відповідне поле
-2. Виберіть вашу домашню WiFi мережу зі списку доступних мереж
-3. Введіть пароль від вашої WiFi мережі
-4. Натисніть кнопку **"Зберегти"** або **"Connect"**
-5. Дочекайтеся повідомлення про успішне підключення
-
-#### Крок 5: Перезавантаження Arduino/ESP
-1. Після збереження налаштувань ESP перезавантажиться автоматично
-2. Якщо цього не сталося, натисніть кнопку RESET на платі Arduino
-3. Зачекайте 10-15 секунд, поки пристрій підключиться до вашої WiFi мережі
-
-#### Крок 6: Підтвердження підключення на сайті
-1. Поверніться на сайт (діалогове вікно з QR-кодом повинно бути ще відкрите)
-2. Натисніть кнопку **"Перевірити підключення"** внизу діалогового вікна
-3. Система перевірить, чи пристрій успішно підключився до бази даних
-4. При успіху (статус 200) з'явиться сповіщення **"Підключення підтверджено!"**
-5. Пристрій автоматично з'явиться у списку на Dashboard зі статусом **"online"**
-6. Діалогове вікно автоматично закриється
-
-**Важливо:** При виникненні CORS-помилки або помилки мережі:
-- Перевірте інтернет з'єднання
-- Очистіть кеш браузера (Ctrl+Shift+Del або Cmd+Shift+Del)
-- Система автоматично спробує повторити підключення 3 рази з інтервалом 5 секунд
-- Якщо помилка повторюється, перевірте статус підключення до Supabase у блоці "Статус підключення"
-
-#### Крок 7: Перевірка статусу через Realtime
-1. На сторінці Dashboard знайдіть блок **"Статус підключення"**
-2. Переконайтеся, що кількість онлайн пристроїв збільшилася (Онлайн: 1, Всього: 1)
-3. У секції **"Пристрої"** ваш новий пристрій буде відображатися з:
-   - Зеленим індикатором статусу (пульсуючий)
-   - Статусом **"online"**
-   - Поточним часом останньої активності
-4. Статус оновлюється автоматично в реальному часі через **Supabase Realtime**
-5. При підключенні нових пристроїв список оновлюється без перезавантаження сторінки
-
-### 4. Realtime оновлення статусу
-
-Після підтвердження підключення:
-- ✅ Dashboard автоматично отримує нові пристрої через Supabase Realtime
-- ✅ Статус `online`/`offline` оновлюється у реальному часі
-- ✅ Показується час останньої активності
-- ✅ Кнопка "Підтвердити підключення" встановлює статус "online" для зареєстрованого пристрою
-
----
-
 ## Наступні кроки
 
 ### Backend інтеграція
 Для повної функціональності потрібно підключити **Supabase**:
 
-- ✅ **Authentication** (email/password)
-- ✅ **PostgreSQL** для зберігання користувачів та налаштувань
-- ✅ **Real-time subscriptions** для живих даних
-- ✅ **Edge Functions** для реєстрації пристроїв (`/setup`)
+- **Authentication** (email/password)
+- **PostgreSQL** для зберігання користувачів та налаштувань
+- **Real-time subscriptions** для живих даних
+- **Edge Functions** для MQTT інтеграції
 
 ### MQTT інтеграція
 ```javascript
@@ -340,49 +191,6 @@ CMD ["nginx", "-g", "daemon off;"]
 npm run build
 # Завантажити dist/ папку
 ```
-
-## 🔐 Безпека (Row-Level Security)
-
-### Увімкнення RLS
-
-Row-Level Security (RLS) вже налаштовано для всіх таблиць у проекті. Якщо ви створюєте нові таблиці або хочете перевірити поточні налаштування:
-
-1. Відкрийте [Supabase Dashboard](https://supabase.com/dashboard)
-2. Перейдіть до **Table Editor**
-3. Виберіть таблицю (наприклад, `devices` або `device_logs`)
-4. Перейдіть на вкладку **Policies**
-5. Переконайтеся, що RLS увімкнено (зелена позначка "RLS enabled")
-
-### Поточні RLS політики
-
-#### Таблиця `devices`
-- **"Users manage their devices"** (ALL) - Користувачі можуть керувати лише своїми пристроями
-  - USING: `user_id = auth.uid()`
-  - WITH CHECK: `user_id = auth.uid()`
-
-#### Таблиця `device_logs`
-- **"Users view their logs"** (ALL) - Користувачі бачать логи лише своїх пристроїв
-  - USING: `device_id IN (SELECT id FROM devices WHERE user_id = auth.uid())`
-  - WITH CHECK: `device_id IN (SELECT id FROM devices WHERE user_id = auth.uid())`
-
-### Edge Functions і автентифікація
-
-Всі Edge Functions (`/setup`, `/device-api`) використовують `supabase.auth.getUser()` для перевірки автентифікації:
-
-```typescript
-const { data: { user }, error: authError } = await supabase.auth.getUser(
-  authHeader.replace('Bearer ', '')
-);
-
-if (authError || !user) {
-  return new Response(
-    JSON.stringify({ error: 'Invalid authorization token' }),
-    { status: 401 }
-  );
-}
-```
-
-Якщо JWT токен відсутній або недійсний, функція поверне **401 Unauthorized**.
 
 ## Ліцензія
 

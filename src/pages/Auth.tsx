@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
-import logoImage from '@/assets/logo-agro-hogwards.png';
+import { Loader2, Sprout } from 'lucide-react';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -120,13 +119,11 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img 
-              src={logoImage} 
-              alt="Agro Hogwards Logo" 
-              className="w-12 h-12 object-contain"
-            />
+            <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center">
+              <Sprout className="w-6 h-6 text-primary-foreground" />
+            </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Agro Hogwards
+              Grow Box Technology
             </h1>
           </div>
           <p className="text-muted-foreground">

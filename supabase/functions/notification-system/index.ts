@@ -21,126 +21,78 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
   try {
-    // Get user from authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    // Verify user authentication
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('Authentication error:', userError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const requestData: NotificationRequest = await req.json();
-
-    // Validate input
-    if (!requestData.subject || requestData.subject.length > 200) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid subject' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!requestData.message || requestData.message.length > 2000) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify user can send notifications for this user_id
-    if (requestData.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { user_id, type, subject, message, device_name, alert_type }: NotificationRequest = await req.json();
 
     // Get user's notification settings
     const { data: settings, error: settingsError } = await supabase
       .from('notification_settings')
       .select('*')
-      .eq('user_id', requestData.user_id)
+      .eq('user_id', user_id)
       .single();
 
     if (settingsError) {
-      console.error('Settings error:', settingsError.message);
-      return new Response(
-        JSON.stringify({ error: 'Settings not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Error fetching notification settings:', settingsError);
+      return new Response(JSON.stringify({ error: 'Settings not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Get user profile for contact info (hide sensitive data in logs)
+    // Get user profile for contact info
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('email, full_name')
-      .eq('user_id', requestData.user_id)
+      .eq('user_id', user_id)
       .single();
 
     if (profileError) {
-      console.error('Profile error');
-      return new Response(
-        JSON.stringify({ error: 'Profile not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Error fetching user profile:', profileError);
+      return new Response(JSON.stringify({ error: 'Profile not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     let notificationSent = false;
 
     // Send email notification
-    if (requestData.type === 'email' && settings.email_enabled && profile.email) {
+    if (type === 'email' && settings.email_enabled && profile.email) {
       try {
         const emailResponse = await sendEmailNotification({
           to: profile.email,
           name: profile.full_name || 'User',
-          subject: requestData.subject,
-          message: requestData.message,
-          device_name: requestData.device_name,
-          alert_type: requestData.alert_type
+          subject,
+          message,
+          device_name,
+          alert_type
         });
         
-        console.log('Email notification sent successfully');
+        console.log('Email sent successfully:', emailResponse);
         notificationSent = true;
-      } catch (emailError: any) {
-        console.error('Email error occurred');
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
       }
     }
 
     // Send Telegram notification
-    if (requestData.type === 'telegram' && settings.push_enabled) {
+    if (type === 'telegram' && settings.push_enabled) {
       try {
         const telegramResponse = await sendTelegramNotification({
-          user_id: requestData.user_id,
-          message: `🚨 *${requestData.subject}*\n\n${requestData.message}${requestData.device_name ? `\n📱 Device: ${requestData.device_name}` : ''}`,
-          alert_type: requestData.alert_type
+          user_id,
+          message: `🚨 *${subject}*\n\n${message}${device_name ? `\n📱 Device: ${device_name}` : ''}`,
+          alert_type
         });
         
-        console.log('Telegram notification sent successfully');
+        console.log('Telegram sent successfully:', telegramResponse);
         notificationSent = true;
-      } catch (telegramError: any) {
-        console.error('Telegram error occurred');
+      } catch (telegramError) {
+        console.error('Error sending Telegram:', telegramError);
       }
     }
 
@@ -152,15 +104,9 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error: any) {
-    console.error('Error in notification-system function:', {
-      error: error.message,
-    });
-    
+    console.error('Error in notification-system function:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'An error occurred processing your request',
-        code: 'INTERNAL_ERROR'
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -178,7 +124,8 @@ async function sendEmailNotification(params: {
   alert_type?: string;
 }) {
   // This would integrate with a service like Resend or SendGrid
-  console.log('Email notification prepared');
+  // For now, just log the email
+  console.log('Email notification:', params);
   
   // TODO: Implement actual email sending
   // Example with Resend:
@@ -209,7 +156,8 @@ async function sendTelegramNotification(params: {
   alert_type?: string;
 }) {
   // This would integrate with Telegram Bot API
-  console.log('Telegram notification prepared');
+  // For now, just log the message
+  console.log('Telegram notification:', params);
   
   // TODO: Implement actual Telegram sending
   // Example with Telegram Bot API:

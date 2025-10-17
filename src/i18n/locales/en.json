@@ -5,8 +5,7 @@
     "remoteControl": "Remote Control",
     "analytics": "Analytics",
     "settings": "Settings",
-    "logout": "Logout",
-    "adminPanel": "Admin Panel"
+    "logout": "Logout"
   },
   "dashboard": {
     "title": "IoT Control Panel",
@@ -113,15 +112,5 @@
     "temperatureAlerts": "Temperature Alerts",
     "humidityAlerts": "Humidity Alerts",
     "testNotification": "Test Notification"
-  },
-  "admin": {
-    "title": "Admin Panel",
-    "deviceLogs": "Device Logs",
-    "timestamp": "Timestamp",
-    "device": "Device",
-    "user": "User",
-    "metric": "Metric",
-    "value": "Value",
-    "noLogs": "No logs to display"
   }
 }

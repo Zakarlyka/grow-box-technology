@@ -1,47 +1,110 @@
-import { Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import logoImage from '@/assets/logo-agro-hogwards.png';
+import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, User, Settings, LogOut, Globe } from 'lucide-react';
 
 interface HeaderProps {
   onSettingsClick?: () => void;
-  onLogoClick?: () => void;
 }
+import logoAgroHogwards from '@/assets/logo-agro-hogwards-new.png';
 
-export function Header({ onSettingsClick, onLogoClick }: HeaderProps) {
-  const navigate = useNavigate();
+export function Header({ onSettingsClick }: HeaderProps = {}) {
+  const { t, i18n } = useTranslation();
+  const { user, signOut, profile } = useAuth();
 
-  const handleLogoClick = () => {
-    if (onLogoClick) {
-      onLogoClick();
-    }
-    navigate('/dashboard');
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
   };
 
+  const languages = [
+    { code: 'uk', name: 'Українська', flag: '🇺🇦' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  ];
+
+  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+
   return (
-    <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-50">
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        <button 
-          onClick={handleLogoClick}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-        >
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+        <div className="flex items-center gap-2">
           <img 
-            src={logoImage} 
+            src={logoAgroHogwards} 
             alt="Agro Hogwards Logo" 
             className="w-10 h-10 object-contain"
           />
-          <span className="text-xl font-bold text-accent">Agro Hogwards</span>
-        </button>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Agro Hogwards
+          </h1>
+        </div>
 
-        {onSettingsClick && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onSettingsClick}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Language Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Globe className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">{currentLanguage.flag}</span>
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {languages.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className="flex items-center gap-2"
+                >
+                  <span>{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <User className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline max-w-32 truncate">
+                  {profile?.full_name || user?.email?.split('@')[0] || 'Користувач'}
+                </span>
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{profile?.full_name || 'Користувач'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                {profile?.role && (
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    {profile.role === 'user' ? 'Користувач' : 
+                     profile.role === 'developer' ? 'Розробник' : 'Адміністратор'}
+                  </Badge>
+                )}
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onSettingsClick}>
+                <Settings className="w-4 h-4 mr-2" />
+                {t('navigation.settings')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                {t('navigation.logout')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );
