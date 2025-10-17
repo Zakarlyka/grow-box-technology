@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Copy, CheckCircle, Loader2, WifiOff } from 'lucide-react';
+import { Copy, CheckCircle, Loader2, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
   const [qrData, setQrData] = useState<{ token: string; link: string } | null>(null);
   const [connected, setConnected] = useState(false);
   const [polling, setPolling] = useState(false);
+  const [checking, setChecking] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
   const checkForNewDevice = async () => {
     if (!user) return;
 
+    setChecking(true);
     try {
       const { data: devices, error } = await supabase
         .from('devices')
@@ -98,10 +100,29 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
             description: `${latestDevice.name} успішно додано`,
           });
           onDeviceAdded();
+        } else {
+          toast({
+            title: 'Пристрій не знайдено',
+            description: 'Переконайтесь, що пристрій підключено до Wi-Fi',
+            variant: 'destructive',
+          });
         }
+      } else {
+        toast({
+          title: 'Пристрій не знайдено',
+          description: 'Переконайтесь, що пристрій підключено до Wi-Fi',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error checking for device:', error);
+      toast({
+        title: 'Помилка перевірки',
+        description: 'Спробуйте ще раз',
+        variant: 'destructive',
+      });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -188,9 +209,30 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
             </Button>
 
             {/* Status */}
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <WifiOff className="h-4 w-4 animate-pulse" />
-              <span>Очікування підключення пристрою...</span>
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <WifiOff className="h-4 w-4 animate-pulse" />
+                <span>Очікування підключення пристрою...</span>
+              </div>
+              
+              <Button
+                onClick={checkForNewDevice}
+                variant="outline"
+                disabled={checking}
+                className="w-full"
+              >
+                {checking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Перевірка...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Перевірити підключення
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         )}
