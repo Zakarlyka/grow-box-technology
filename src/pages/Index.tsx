@@ -5,7 +5,6 @@ import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
 import { Devices } from '@/components/Devices';
 import { RemoteControlPage } from '@/pages/RemoteControlPage';
-import { DeviceManagement } from '@/components/DeviceManagement';
 import { AdvancedCharts } from '@/components/AdvancedCharts';
 import { Settings } from '@/pages/Settings';
 import DeveloperCabinet from '@/components/DeveloperCabinet';
@@ -16,12 +15,10 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
       case 'devices':
         return <Devices />;
-      case 'device-management':
-        return <DeviceManagement />;
+      case 'dashboard':
+        return <Dashboard />;
       case 'remote-control':
         return <RemoteControlPage />;
       case 'analytics':
@@ -32,7 +29,7 @@ const Index = () => {
         return profile?.role === 'developer' || profile?.role === 'admin' ? 
           <DeveloperCabinet /> : <Settings />;
       default:
-        return <Dashboard />;
+        return <Devices />;
     }
   };
 

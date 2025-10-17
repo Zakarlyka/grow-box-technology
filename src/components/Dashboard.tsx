@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { 
   Thermometer, 
   Droplets, 
@@ -11,10 +11,27 @@ import {
   Cpu,
   Activity,
   TrendingUp,
-  AlertTriangle
+  Plus,
+  Settings,
+  Trash2,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart-simple';
+import { useDevices } from '@/hooks/useDevices';
+import { useSensorData } from '@/hooks/useSensorData';
+import { AddDeviceDialog } from './AddDeviceDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface SensorData {
   time: string;
@@ -37,10 +54,29 @@ interface DeviceStatus {
 
 export function Dashboard() {
   const { t } = useTranslation();
-  const [sensorData, setSensorData] = useState<SensorData[]>([]);
-  const [devices, setDevices] = useState<DeviceStatus[]>([]);
+  const { devices, loading, deleteDevice, fetchDevices } = useDevices();
+  const { sensorData } = useSensorData();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
 
-  // Simulate real-time data
+  const handleDeleteClick = (deviceId: string) => {
+    setDeviceToDelete(deviceId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deviceToDelete) {
+      await deleteDevice(deviceToDelete);
+      setDeleteDialogOpen(false);
+      setDeviceToDelete(null);
+    }
+  };
+
+  // Mock sensor data for chart (in real app, use data from useSensorData)
+  const [chartData, setChartData] = useState<SensorData[]>([]);
+
+  // Generate mock chart data
   useEffect(() => {
     const generateData = () => {
       const now = new Date();
@@ -57,59 +93,11 @@ export function Dashboard() {
         });
       }
       
-      setSensorData(newData);
-    };
-
-    const generateDevices = () => {
-      const deviceList: DeviceStatus[] = [
-        {
-          id: 'grow-001',
-          name: 'Grow Box #1',
-          status: 'online',
-          temperature: 24.5,
-          humidity: 65,
-          soilMoisture: 72,
-          lightLevel: 85,
-          lastSeen: '2 min ago'
-        },
-        {
-          id: 'grow-002',
-          name: 'Grow Box #2',
-          status: 'online',
-          temperature: 23.1,
-          humidity: 68,
-          soilMoisture: 68,
-          lightLevel: 90,
-          lastSeen: '1 min ago'
-        },
-        {
-          id: 'grow-003',
-          name: 'Grow Box #3',
-          status: 'offline',
-          temperature: 22.8,
-          humidity: 62,
-          soilMoisture: 45,
-          lightLevel: 0,
-          lastSeen: '2 hours ago'
-        }
-      ];
-      
-      setDevices(deviceList);
+      setChartData(newData);
     };
 
     generateData();
-    generateDevices();
-    
-    const interval = setInterval(() => {
-      generateData();
-      // Update device data slightly
-      setDevices(prev => prev.map(device => ({
-        ...device,
-        temperature: device.status === 'online' ? device.temperature + (Math.random() - 0.5) * 2 : device.temperature,
-        humidity: device.status === 'online' ? Math.max(0, Math.min(100, device.humidity + (Math.random() - 0.5) * 5)) : device.humidity,
-      })));
-    }, 5000);
-
+    const interval = setInterval(generateData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -140,20 +128,26 @@ export function Dashboard() {
 
   return (
     <div className="flex-1 space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          {t('dashboard.title')}
-        </h1>
-        <p className="text-muted-foreground">
-          {t('dashboard.subtitle')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {t('dashboard.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {t('dashboard.subtitle')}
+          </p>
+        </div>
+        <Button className="gradient-primary" onClick={() => setAddDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          {t('devices.addDevice')}
+        </Button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t('dashboard.totalDevices')}
-          value={totalDevices}
+          value={devices.length}
           unit=""
           icon={Cpu}
         />
@@ -191,7 +185,7 @@ export function Dashboard() {
             <div className="h-[300px] w-full">
               <ChartContainer config={{}}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={sensorData}>
+                  <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
                     <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -216,32 +210,85 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {devices.map((device) => (
-              <div key={device.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
-                <div className="flex items-center space-x-3">
-                  <div className={`h-3 w-3 rounded-full ${
-                    device.status === 'online' ? 'bg-success animate-pulse-glow' : 'bg-destructive'
-                  }`} />
-                  <div>
-                    <p className="text-sm font-medium">{device.name}</p>
-                    <p className="text-xs text-muted-foreground">{device.lastSeen}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={device.status === 'online' ? 'default' : 'destructive'}>
-                    {device.status === 'online' ? t('devices.online') : t('devices.offline')}
-                  </Badge>
-                  {device.status === 'online' && (
-                    <div className="text-xs text-muted-foreground">
-                      {device.temperature.toFixed(1)}°C
-                    </div>
-                  )}
-                </div>
+            {loading ? (
+              <div className="text-center py-4 text-muted-foreground">Завантаження...</div>
+            ) : devices.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-2">Пристрої не знайдено</p>
+                <Button onClick={() => setAddDialogOpen(true)} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Додати пристрій
+                </Button>
               </div>
-            ))}
+            ) : (
+              devices.map((device) => {
+                const lastSeen = device.last_seen 
+                  ? new Date(device.last_seen).toLocaleString('uk-UA')
+                  : 'Невідомо';
+                
+                return (
+                  <div key={device.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className={`h-3 w-3 rounded-full ${
+                        device.status === 'online' ? 'bg-success animate-pulse-glow' : 'bg-destructive'
+                      }`} />
+                      <div>
+                        <p className="text-sm font-medium">{device.name}</p>
+                        <p className="text-xs text-muted-foreground">{lastSeen}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={device.status === 'online' ? 'default' : 'destructive'}>
+                        {device.status === 'online' ? (
+                          <><Wifi className="h-3 w-3 mr-1" />{t('devices.online')}</>
+                        ) : (
+                          <><WifiOff className="h-3 w-3 mr-1" />{t('devices.offline')}</>
+                        )}
+                      </Badge>
+                      {device.status === 'online' && device.last_temp && (
+                        <div className="text-xs text-muted-foreground">
+                          {device.last_temp.toFixed(1)}°C
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(device.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <AddDeviceDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onDeviceAdded={fetchDevices}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Видалити пристрій?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Цю дію неможливо скасувати. Пристрій буде видалено назавжди.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
+              Видалити
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
