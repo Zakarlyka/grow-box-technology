@@ -8,6 +8,7 @@ import { QrCode, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { QRDeviceSetup } from './QRDeviceSetup';
 
 interface AddDeviceDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface AddDeviceDialogProps {
 
 export function AddDeviceDialog({ open, onOpenChange, onDeviceAdded }: AddDeviceDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [showQRSetup, setShowQRSetup] = useState(false);
   const [pairingCode, setPairingCode] = useState('');
   const [manualData, setManualData] = useState({
     device_id: '',
@@ -144,47 +146,45 @@ export function AddDeviceDialog({ open, onOpenChange, onDeviceAdded }: AddDevice
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Додати пристрій</DialogTitle>
-          <DialogDescription>
-            Додайте новий пристрій за допомогою QR-коду або вручну
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Додати пристрій</DialogTitle>
+            <DialogDescription>
+              Оберіть спосіб додавання пристрою
+            </DialogDescription>
+          </DialogHeader>
 
-        <Tabs defaultValue="qr" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="qr">
-              <QrCode className="mr-2 h-4 w-4" />
-              QR-код
-            </TabsTrigger>
-            <TabsTrigger value="manual">
-              <Plus className="mr-2 h-4 w-4" />
-              Вручну
-            </TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="qr" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="qr">
+                <QrCode className="mr-2 h-4 w-4" />
+                QR-код
+              </TabsTrigger>
+              <TabsTrigger value="manual">
+                <Plus className="mr-2 h-4 w-4" />
+                Вручну
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="qr" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="pairing-code">Код пристрою</Label>
-              <Input
-                id="pairing-code"
-                placeholder="Введіть код з QR"
-                value={pairingCode}
-                onChange={(e) => setPairingCode(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <Button
-              onClick={handleQRPairing}
-              disabled={loading}
-              className="w-full"
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Додати пристрій
-            </Button>
-          </TabsContent>
+            <TabsContent value="qr" className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Натисніть кнопку нижче, щоб згенерувати QR-код для підключення пристрою
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  setShowQRSetup(true);
+                  onOpenChange(false);
+                }}
+                className="w-full"
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+                Згенерувати QR-код
+              </Button>
+            </TabsContent>
 
           <TabsContent value="manual" className="space-y-4">
             <div className="space-y-2">
@@ -229,5 +229,15 @@ export function AddDeviceDialog({ open, onOpenChange, onDeviceAdded }: AddDevice
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <QRDeviceSetup
+      open={showQRSetup}
+      onOpenChange={setShowQRSetup}
+      onDeviceAdded={() => {
+        setShowQRSetup(false);
+        onDeviceAdded();
+      }}
+    />
+  </>
   );
 }

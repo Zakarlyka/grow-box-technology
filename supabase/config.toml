@@ -1,1 +1,13 @@
 project_id = "ychnmaaximnoxvwnzrgs"
+
+[functions.device-api]
+verify_jwt = false
+
+[functions.notification-system]
+verify_jwt = true
+
+[functions.generate-qr]
+verify_jwt = true
+
+[functions.confirm-device]
+verify_jwt = false
