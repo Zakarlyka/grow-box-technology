@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Thermometer, Droplets, Sprout, Sun, Wifi, WifiOff } from 'lucide-react';
+import { Thermometer, Droplets, Sprout, Sun, Moon, Wifi, WifiOff } from 'lucide-react';
 import { Device } from '@/hooks/useDevices';
 import { useDeviceLogs } from '@/hooks/useDeviceLogs';
+import { useDeviceControls } from '@/hooks/useDeviceControls';
+import { useDeviceSchedules } from '@/hooks/useDeviceSchedules';
 import { useNavigate } from 'react-router-dom';
 
 interface DeviceCardProps {
@@ -11,9 +13,39 @@ interface DeviceCardProps {
 
 export function DeviceCard({ device }: DeviceCardProps) {
   const { latestLog } = useDeviceLogs(device.id);
+  const { controls } = useDeviceControls(device.id);
+  const { schedules } = useDeviceSchedules(device.id);
   const navigate = useNavigate();
 
   const isOnline = device.status === 'online';
+
+  // Get light control state and schedule
+  const lightControl = controls.find(c => c.control_name === 'light');
+  const lightSchedule = schedules.find(s => s.control_name === 'light' && s.schedule_type === 'time');
+  
+  // Calculate day/night duration
+  const getLightMode = () => {
+    if (!lightSchedule || !lightSchedule.start_time || !lightSchedule.end_time) {
+      return null;
+    }
+
+    const startHour = parseInt(lightSchedule.start_time.split(':')[0]);
+    const endHour = parseInt(lightSchedule.end_time.split(':')[0]);
+    
+    let dayDuration = endHour - startHour;
+    if (dayDuration < 0) dayDuration += 24;
+    const nightDuration = 24 - dayDuration;
+
+    const isDay = lightControl?.value || false;
+
+    return {
+      isDay,
+      dayDuration,
+      nightDuration,
+    };
+  };
+
+  const lightMode = getLightMode();
 
   const SensorValue = ({ icon: Icon, label, value, unit }: any) => (
     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
@@ -79,12 +111,29 @@ export function DeviceCard({ device }: DeviceCardProps) {
           unit="%"
         />
         
-        <SensorValue
-          icon={Sun}
-          label="Рівень освітлення"
-          value={latestLog?.light_level?.toFixed(0)}
-          unit="%"
-        />
+        <div 
+          className={`flex items-center justify-between p-3 rounded-lg border border-border/30 transition-colors ${
+            lightMode?.isDay 
+              ? 'bg-yellow-500/10 border-yellow-500/30' 
+              : 'bg-blue-500/10 border-blue-500/30'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {lightMode?.isDay ? (
+              <Sun className="h-4 w-4 text-yellow-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-blue-500" />
+            )}
+            <span className="text-sm text-muted-foreground">День / Ніч</span>
+          </div>
+          {lightMode ? (
+            <span className="text-lg font-semibold text-foreground">
+              {lightMode.isDay ? '🌞' : '🌙'} {lightMode.isDay ? 'День' : 'Ніч'} — {lightMode.isDay ? lightMode.dayDuration : lightMode.nightDuration} годин
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground">— Режим не встановлено —</span>
+          )}
+        </div>
 
         {device.last_seen && (
           <div className="pt-2 border-t border-border/30">
