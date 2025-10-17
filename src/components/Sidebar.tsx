@@ -71,12 +71,12 @@ export const Sidebar = () => {
     <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-border">
-        <div className="flex items-center gap-3">
+        <NavLink to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
             <Sprout className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-accent">IoT Platform</span>
-        </div>
+          <span className="text-xl font-bold text-accent">Agro Hogwards</span>
+        </NavLink>
         <p className="text-xs text-muted-foreground mt-2">Керуйте ESP32 GrowBox пристроями</p>
       </div>
 
