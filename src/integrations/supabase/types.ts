@@ -153,6 +153,27 @@ export type Database = {
           },
         ]
       }
+      device_pairing_temp: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          pairing_code: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          pairing_code: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          pairing_code?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       device_schedules: {
         Row: {
           control_name: string
@@ -208,9 +229,14 @@ export type Database = {
           configuration: Json | null
           created_at: string
           device_id: string
+          device_id_old: string | null
+          device_id_uuid: string | null
           group_id: string | null
           id: string
+          last_hum: number | null
           last_seen: string | null
+          last_seen_at: string | null
+          last_temp: number | null
           location: string | null
           name: string
           status: string
@@ -222,11 +248,16 @@ export type Database = {
           configuration?: Json | null
           created_at?: string
           device_id: string
+          device_id_old?: string | null
+          device_id_uuid?: string | null
           group_id?: string | null
           id?: string
+          last_hum?: number | null
           last_seen?: string | null
+          last_seen_at?: string | null
+          last_temp?: number | null
           location?: string | null
-          name: string
+          name?: string
           status?: string
           type?: string
           updated_at?: string
@@ -236,9 +267,14 @@ export type Database = {
           configuration?: Json | null
           created_at?: string
           device_id?: string
+          device_id_old?: string | null
+          device_id_uuid?: string | null
           group_id?: string | null
           id?: string
+          last_hum?: number | null
           last_seen?: string | null
+          last_seen_at?: string | null
+          last_temp?: number | null
           location?: string | null
           name?: string
           status?: string
@@ -335,6 +371,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_devices: {
+        Row: {
+          created_at: string | null
+          device_token: string
+          expires_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_token: string
+          expires_at: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_token?: string
+          expires_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -483,15 +543,68 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          app_role: Database["public"]["Enums"]["app_role"] | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          app_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_pairing_records: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      secure_register_device: {
+        Args: {
+          p_device_id: string
+          p_location?: string
+          p_name: string
+          p_type: string
+        }
+        Returns: {
+          device_id: string
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }[]
+      }
+      verify_and_consume_pending_token: {
+        Args: { p_token: string }
+        Returns: {
+          device_id: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "admin" | "superadmin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -618,6 +731,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "admin", "superadmin"],
+    },
   },
 } as const
