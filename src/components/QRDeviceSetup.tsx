@@ -45,13 +45,29 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
   }, [qrData, connected, polling]);
 
   const generateQR = async () => {
+    if (!user) {
+      console.error('❌ No user found');
+      return;
+    }
+
+    console.log('🔄 Starting QR generation for user:', user.id);
     setLoading(true);
     try {
+      const session = await supabase.auth.getSession();
+      console.log('🔑 Session token:', session.data.session?.access_token ? 'Present' : 'Missing');
+
       const { data, error } = await supabase.functions.invoke('generate-qr', {
-        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.data.session?.access_token}`,
+        },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error from generate-qr:', error);
+        throw error;
+      }
+
+      console.log('✅ QR generated successfully:', { token: data.token, link: data.link });
 
       if (data.success) {
         setQrData({ token: data.token, link: data.link });
@@ -62,7 +78,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
         });
       }
     } catch (error: any) {
-      console.error('Error generating QR:', error);
+      console.error('❌ Error generating QR:', error);
       toast({
         title: 'Помилка',
         description: 'Не вдалося згенерувати QR-код',
@@ -74,8 +90,12 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
   };
 
   const checkForNewDevice = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error('❌ No user found for device check');
+      return;
+    }
 
+    console.log('🔍 Checking for new devices for user:', user.id);
     setChecking(true);
     try {
       const { data: devices, error } = await supabase
@@ -85,14 +105,24 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching devices:', error);
+        throw error;
+      }
+
+      console.log('📱 Devices found:', devices?.length || 0);
 
       if (devices && devices.length > 0) {
         const latestDevice = devices[0];
         const deviceAge = Date.now() - new Date(latestDevice.created_at).getTime();
         
+        console.log('⏰ Device created at:', new Date(latestDevice.created_at).toISOString());
+        console.log('⏰ Device age (ms):', deviceAge);
+        console.log('✅ Is recent device (< 30s):', deviceAge < 30000);
+        
         // If device was created in last 30 seconds, it's the new one
         if (deviceAge < 30000) {
+          console.log('🎉 New device found:', latestDevice.name);
           setConnected(true);
           setPolling(false);
           toast({
@@ -101,6 +131,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
           });
           onDeviceAdded();
         } else {
+          console.log('⚠️ No recent devices found');
           toast({
             title: 'Пристрій не знайдено',
             description: 'Переконайтесь, що пристрій підключено до Wi-Fi',
@@ -108,6 +139,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
           });
         }
       } else {
+        console.log('⚠️ No devices found at all');
         toast({
           title: 'Пристрій не знайдено',
           description: 'Переконайтесь, що пристрій підключено до Wi-Fi',
@@ -115,7 +147,7 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
         });
       }
     } catch (error) {
-      console.error('Error checking for device:', error);
+      console.error('❌ Error checking for device:', error);
       toast({
         title: 'Помилка перевірки',
         description: 'Спробуйте ще раз',
@@ -173,6 +205,12 @@ export function QRDeviceSetup({ open, onOpenChange, onDeviceAdded }: QRDeviceSet
             {/* QR Code */}
             <div className="flex justify-center p-6 bg-white rounded-lg">
               <QRCode value={qrData.link} size={200} />
+            </div>
+
+            {/* Debug Info */}
+            <div className="text-xs text-muted-foreground text-center space-y-1 bg-muted/50 p-3 rounded-lg">
+              <p className="font-mono"><strong>Token:</strong> {qrData.token}</p>
+              <p className="font-mono break-all"><strong>Link:</strong> {qrData.link}</p>
             </div>
 
             {/* Instructions */}
