@@ -13,6 +13,7 @@ export interface Device {
   last_temp?: number | null;
   last_hum?: number | null;
   last_seen?: string | null;
+  last_seen_at?: string | null;
   user_id: string;
   created_at?: string;
   updated_at?: string;
@@ -57,8 +58,31 @@ export function useDevices() {
     }
   };
 
+  // Check device status based on last_seen_at
+  const updateDevicesStatus = () => {
+    setDevices(prevDevices => 
+      prevDevices.map(device => {
+        if (!device.last_seen_at) return device;
+        
+        const lastSeen = new Date(device.last_seen_at);
+        const now = new Date();
+        const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
+        
+        const newStatus = diffMinutes < 2 ? 'online' : 'offline';
+        
+        if (device.status !== newStatus) {
+          return { ...device, status: newStatus };
+        }
+        return device;
+      })
+    );
+  };
+
   useEffect(() => {
     fetchDevices();
+
+    // Check status every 60 seconds
+    const statusInterval = setInterval(updateDevicesStatus, 60000);
 
     // Subscribe to realtime changes
     const channel = supabase
@@ -79,6 +103,7 @@ export function useDevices() {
       .subscribe();
 
     return () => {
+      clearInterval(statusInterval);
       supabase.removeChannel(channel);
     };
   }, [user]);

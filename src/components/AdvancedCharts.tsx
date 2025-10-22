@@ -36,14 +36,13 @@ import {
 } from 'lucide-react';
 
 interface SensorData {
-  timestamp: string;
-  temperature?: number;
-  humidity?: number;
+  created_at: string;
+  temp?: number;
+  hum?: number;
   soil_moisture?: number;
   light_level?: number;
-  water_level?: number;
-  ph_level?: number;
-  ec_level?: number;
+  light_cycle_hours?: number;
+  irrigation_time?: string;
 }
 
 interface Device {
@@ -68,16 +67,14 @@ export function AdvancedCharts() {
   const [timeRange, setTimeRange] = useState<string>('24h');
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['temperature', 'humidity']);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['temp', 'hum']);
 
   const metrics = [
-    { key: 'temperature', label: 'Temperature (°C)', color: '#3B82F6', icon: Thermometer },
-    { key: 'humidity', label: 'Humidity (%)', color: '#10B981', icon: Droplets },
+    { key: 'temp', label: 'Air Temperature (°C)', color: '#3B82F6', icon: Thermometer },
+    { key: 'hum', label: 'Air Humidity (%)', color: '#10B981', icon: Droplets },
     { key: 'soil_moisture', label: 'Soil Moisture (%)', color: '#8B5CF6', icon: Sprout },
     { key: 'light_level', label: 'Light Level (%)', color: '#F59E0B', icon: Sun },
-    { key: 'water_level', label: 'Water Level (%)', color: '#06B6D4' },
-    { key: 'ph_level', label: 'pH Level', color: '#EF4444' },
-    { key: 'ec_level', label: 'EC Level (μS/cm)', color: '#F97316' }
+    { key: 'light_cycle_hours', label: 'Photoperiod Length (h)', color: '#F97316', icon: Sun }
   ];
 
   useEffect(() => {
@@ -90,6 +87,29 @@ export function AdvancedCharts() {
     if (devices.length > 0) {
       fetchChartData();
     }
+  }, [devices, selectedDevice, timeRange]);
+
+  // Subscribe to realtime updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('device-logs-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'device_logs'
+        },
+        () => {
+          console.log('New log received, refreshing chart data');
+          fetchChartData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [devices, selectedDevice, timeRange]);
 
   const fetchDevices = async () => {
@@ -123,10 +143,10 @@ export function AdvancedCharts() {
       cutoffTime.setHours(cutoffTime.getHours() - hours);
 
       let query = supabase
-        .from('sensor_data')
+        .from('device_logs')
         .select('*')
-        .gte('timestamp', cutoffTime.toISOString())
-        .order('timestamp', { ascending: true });
+        .gte('created_at', cutoffTime.toISOString())
+        .order('created_at', { ascending: true });
 
       if (selectedDevice !== 'all') {
         query = query.eq('device_id', selectedDevice);
@@ -158,7 +178,7 @@ export function AdvancedCharts() {
     const grouped: Record<string, SensorData[]> = {};
 
     data.forEach(point => {
-      const date = new Date(point.timestamp);
+      const date = new Date(point.created_at);
       const intervalKey = new Date(
         Math.floor(date.getTime() / (intervalMinutes * 60 * 1000)) * (intervalMinutes * 60 * 1000)
       ).toISOString();

@@ -135,10 +135,17 @@ export function DeviceCard({ device }: DeviceCardProps) {
           )}
         </div>
 
-        {device.last_seen && (
+        {(device.last_seen || device.last_seen_at) && (
           <div className="pt-2 border-t border-border/30">
             <p className="text-xs text-muted-foreground text-center">
-              Останнє оновлення: {new Date(device.last_seen).toLocaleString('uk-UA')}
+              Остання активність: {new Date(device.last_seen_at || device.last_seen!).toLocaleString('uk-UA', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })}
             </p>
           </div>
         )}

@@ -125,23 +125,41 @@ export type Database = {
         Row: {
           created_at: string | null
           device_id: string
+          hum: number | null
           id: string
-          metric: string
-          value: number
+          irrigation_time: string | null
+          light_cycle_hours: number | null
+          light_level: number | null
+          metric: string | null
+          soil_moisture: number | null
+          temp: number | null
+          value: number | null
         }
         Insert: {
           created_at?: string | null
           device_id: string
+          hum?: number | null
           id?: string
-          metric: string
-          value: number
+          irrigation_time?: string | null
+          light_cycle_hours?: number | null
+          light_level?: number | null
+          metric?: string | null
+          soil_moisture?: number | null
+          temp?: number | null
+          value?: number | null
         }
         Update: {
           created_at?: string | null
           device_id?: string
+          hum?: number | null
           id?: string
-          metric?: string
-          value?: number
+          irrigation_time?: string | null
+          light_cycle_hours?: number | null
+          light_level?: number | null
+          metric?: string | null
+          soil_moisture?: number | null
+          temp?: number | null
+          value?: number | null
         }
         Relationships: [
           {
@@ -149,7 +167,7 @@ export type Database = {
             columns: ["device_id"]
             isOneToOne: false
             referencedRelation: "devices"
-            referencedColumns: ["id"]
+            referencedColumns: ["device_id"]
           },
         ]
       }
@@ -569,10 +587,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_old_pairing_records: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_old_pairing_records: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

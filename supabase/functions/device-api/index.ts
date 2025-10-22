@@ -8,13 +8,12 @@ const corsHeaders = {
 
 interface DeviceLogRequest {
   device_id: string;
-  temperature?: number;
-  humidity?: number;
+  temp?: number;
+  hum?: number;
   soil_moisture?: number;
   light_level?: number;
-  water_level?: number;
-  ph_level?: number;
-  ec_level?: number;
+  light_cycle_hours?: number;
+  irrigation_time?: string;
 }
 
 interface DeviceActionRequest {
@@ -49,11 +48,11 @@ const handler = async (req: Request): Promise<Response> => {
       cutoffTime.setHours(cutoffTime.getHours() - parseInt(hours));
 
       const { data: logs, error } = await supabase
-        .from('sensor_data')
+        .from('device_logs')
         .select('*')
         .eq('device_id', deviceId)
-        .gte('timestamp', cutoffTime.toISOString())
-        .order('timestamp', { ascending: false })
+        .gte('created_at', cutoffTime.toISOString())
+        .order('created_at', { ascending: false })
         .limit(parseInt(limit));
 
       if (error) throw error;
@@ -68,28 +67,26 @@ const handler = async (req: Request): Promise<Response> => {
       const deviceId = segments[2];
       const logData: DeviceLogRequest = await req.json();
 
-      // Update device last_seen
+      // Update device last_seen_at
       await supabase
         .from('devices')
         .update({ 
-          last_seen: new Date().toISOString(),
+          last_seen_at: new Date().toISOString(),
           status: 'online'
         })
         .eq('device_id', deviceId);
 
-      // Insert sensor data
+      // Insert sensor data to device_logs
       const { data, error } = await supabase
-        .from('sensor_data')
+        .from('device_logs')
         .insert({
           device_id: deviceId,
-          temperature: logData.temperature,
-          humidity: logData.humidity,
+          temp: logData.temp,
+          hum: logData.hum,
           soil_moisture: logData.soil_moisture,
           light_level: logData.light_level,
-          water_level: logData.water_level,
-          ph_level: logData.ph_level,
-          ec_level: logData.ec_level,
-          timestamp: new Date().toISOString()
+          light_cycle_hours: logData.light_cycle_hours,
+          irrigation_time: logData.irrigation_time
         })
         .select()
         .single();
@@ -97,7 +94,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (error) throw error;
 
       // Check for alerts
-      if (logData.temperature !== undefined || logData.humidity !== undefined) {
+      if (logData.temp !== undefined || logData.hum !== undefined) {
         await checkAlerts(supabase, deviceId, logData);
       }
 
@@ -202,7 +199,7 @@ const handler = async (req: Request): Promise<Response> => {
           type: type || 'grow_box',
           user_id,
           status: 'online',
-          last_seen: new Date().toISOString()
+          last_seen_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -242,25 +239,25 @@ async function checkAlerts(supabase: any, deviceId: string, data: DeviceLogReque
   let alertTriggered = false;
   let alertMessage = '';
 
-  if (data.temperature !== undefined) {
-    if (settings.temperature_min && data.temperature < settings.temperature_min) {
+  if (data.temp !== undefined) {
+    if (settings.temperature_min && data.temp < settings.temperature_min) {
       alertTriggered = true;
-      alertMessage += `Temperature too low: ${data.temperature}°C (min: ${settings.temperature_min}°C). `;
+      alertMessage += `Temperature too low: ${data.temp}°C (min: ${settings.temperature_min}°C). `;
     }
-    if (settings.temperature_max && data.temperature > settings.temperature_max) {
+    if (settings.temperature_max && data.temp > settings.temperature_max) {
       alertTriggered = true;
-      alertMessage += `Temperature too high: ${data.temperature}°C (max: ${settings.temperature_max}°C). `;
+      alertMessage += `Temperature too high: ${data.temp}°C (max: ${settings.temperature_max}°C). `;
     }
   }
 
-  if (data.humidity !== undefined) {
-    if (settings.humidity_min && data.humidity < settings.humidity_min) {
+  if (data.hum !== undefined) {
+    if (settings.humidity_min && data.hum < settings.humidity_min) {
       alertTriggered = true;
-      alertMessage += `Humidity too low: ${data.humidity}% (min: ${settings.humidity_min}%). `;
+      alertMessage += `Humidity too low: ${data.hum}% (min: ${settings.humidity_min}%). `;
     }
-    if (settings.humidity_max && data.humidity > settings.humidity_max) {
+    if (settings.humidity_max && data.hum > settings.humidity_max) {
       alertTriggered = true;
-      alertMessage += `Humidity too high: ${data.humidity}% (max: ${settings.humidity_max}%). `;
+      alertMessage += `Humidity too high: ${data.hum}% (max: ${settings.humidity_max}%). `;
     }
   }
 
