@@ -34,6 +34,17 @@ export function useDevices() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
+  // Calculate device status based on last_seen_at
+  const calculateDeviceStatus = (lastSeenAt?: string | null): 'online' | 'offline' => {
+    if (!lastSeenAt) return 'offline';
+    
+    const lastSeen = new Date(lastSeenAt);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
+    
+    return diffMinutes <= 2 ? 'online' : 'offline';
+  };
+
   const fetchDevices = async () => {
     if (!user) return;
 
@@ -45,7 +56,14 @@ export function useDevices() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDevices((data || []) as Device[]);
+      
+      // Calculate status dynamically for each device
+      const devicesWithStatus = (data || []).map(device => ({
+        ...device,
+        status: calculateDeviceStatus(device.last_seen_at)
+      })) as Device[];
+      
+      setDevices(devicesWithStatus);
     } catch (error: any) {
       console.error('Error fetching devices:', error);
       toast({
@@ -58,23 +76,13 @@ export function useDevices() {
     }
   };
 
-  // Check device status based on last_seen_at
+  // Update device statuses based on last_seen_at
   const updateDevicesStatus = () => {
     setDevices(prevDevices => 
-      prevDevices.map(device => {
-        if (!device.last_seen_at) return device;
-        
-        const lastSeen = new Date(device.last_seen_at);
-        const now = new Date();
-        const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
-        
-        const newStatus = diffMinutes < 2 ? 'online' : 'offline';
-        
-        if (device.status !== newStatus) {
-          return { ...device, status: newStatus };
-        }
-        return device;
-      })
+      prevDevices.map(device => ({
+        ...device,
+        status: calculateDeviceStatus(device.last_seen_at)
+      }))
     );
   };
 
