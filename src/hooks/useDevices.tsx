@@ -89,8 +89,8 @@ export function useDevices() {
   useEffect(() => {
     fetchDevices();
 
-    // Check status every 60 seconds
-    const statusInterval = setInterval(updateDevicesStatus, 60000);
+    // Check status every 10 seconds
+    const statusInterval = setInterval(updateDevicesStatus, 10000);
 
     // Subscribe to realtime changes
     const channel = supabase

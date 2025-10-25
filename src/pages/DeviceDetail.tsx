@@ -16,6 +16,7 @@ import {
 import { useDevices } from '@/hooks/useDevices';
 import { useDeviceLogs } from '@/hooks/useDeviceLogs';
 import { DeviceControls } from '@/components/DeviceControls';
+import { LogsTable } from '@/components/LogsTable';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart-simple';
 import {
@@ -227,6 +228,9 @@ export default function DeviceDetail() {
         {/* Device Controls */}
         <DeviceControls deviceId={device.id} />
       </div>
+
+      {/* Logs Table */}
+      <LogsTable deviceId={device.id} />
 
       {device.last_seen && (
         <p className="text-sm text-muted-foreground text-center">

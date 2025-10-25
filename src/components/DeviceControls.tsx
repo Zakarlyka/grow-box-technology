@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Droplets, Lightbulb, Wind, Flame, Clock } from 'lucide-react';
 import { useDeviceControls } from '@/hooks/useDeviceControls';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 interface DeviceControlsProps {
   deviceId: string;
@@ -29,6 +31,8 @@ const CONTROLS: ControlConfig[] = [
 export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const { controls, loading, updateControl } = useDeviceControls(deviceId);
   const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
+  const [irrigating, setIrrigating] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
 
   const getControlState = (controlName: string) => {
     const control = controls.find(c => c.control_name === controlName);
@@ -53,6 +57,37 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     await updateControl(controlName, state.value, intensity);
   };
 
+  const handleStartIrrigation = async () => {
+    setIrrigating(true);
+    setRemainingTime(30);
+    
+    // Turn on water pump
+    await updateControl('water_pump', true, 100);
+    
+    toast({
+      title: 'Полив розпочато',
+      description: 'Водяна помпа увімкнена на 30 секунд',
+    });
+  };
+
+  // Countdown timer for irrigation
+  useEffect(() => {
+    if (remainingTime > 0) {
+      const timer = setTimeout(() => {
+        setRemainingTime(remainingTime - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (irrigating && remainingTime === 0) {
+      // Turn off water pump after 30 seconds
+      updateControl('water_pump', false, 0);
+      setIrrigating(false);
+      toast({
+        title: 'Полив завершено',
+        description: 'Водяна помпа вимкнена',
+      });
+    }
+  }, [remainingTime, irrigating]);
+
   if (loading) {
     return (
       <Card className="gradient-card border-border/50">
@@ -72,6 +107,28 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Quick Irrigation Button */}
+        <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Droplets className="h-5 w-5 text-blue-400" />
+              <Label className="text-base">Швидкий полив</Label>
+            </div>
+            {irrigating && (
+              <Badge variant="default" className="bg-blue-500">
+                {remainingTime}с
+              </Badge>
+            )}
+          </div>
+          <Button
+            onClick={handleStartIrrigation}
+            disabled={irrigating || loading}
+            className="w-full bg-blue-500 hover:bg-blue-600"
+          >
+            {irrigating ? 'Полив триває...' : 'Запустити полив (30с)'}
+          </Button>
+        </div>
+
         {CONTROLS.map((control) => {
           const state = getControlState(control.name);
           const intensity = localIntensities[control.name] ?? state.intensity;
