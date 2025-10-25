@@ -22,7 +22,7 @@ interface ControlConfig {
 }
 
 const CONTROLS: ControlConfig[] = [
-  { name: 'water_pump', label: 'Водяна помпа', icon: Droplets, color: 'text-blue-400', hasIntensity: false },
+  { name: 'water_pump', label: 'Водна помпа', icon: Droplets, color: 'text-blue-400', hasIntensity: false },
   { name: 'light', label: 'Освітлення', icon: Lightbulb, color: 'text-yellow-400', hasIntensity: true },
   { name: 'ventilation', label: 'Вентиляція', icon: Wind, color: 'text-cyan-400', hasIntensity: true },
   { name: 'heater', label: 'Обігрівач', icon: Flame, color: 'text-orange-400', hasIntensity: true },
@@ -154,9 +154,17 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
                 <div className="pl-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm text-muted-foreground">
-                      Інтенсивність
+                      {control.name === 'light' 
+                        ? 'Тривалість світлового дня' 
+                        : control.name === 'ventilation'
+                        ? 'Швидкість обертання вентилятора'
+                        : 'Інтенсивність'}
                     </Label>
-                    <span className="text-sm font-medium">{intensity}%</span>
+                    <span className="text-sm font-medium">
+                      {control.name === 'light' 
+                        ? `${Math.round(intensity * 24 / 100)} год` 
+                        : `${intensity}%`}
+                    </span>
                   </div>
                   <Slider
                     value={[intensity]}

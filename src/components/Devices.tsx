@@ -19,7 +19,10 @@ import {
   Settings,
   MoreVertical,
   Activity,
-  Trash2
+  Trash2,
+  Package,
+  Users,
+  AlertCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -103,10 +106,10 @@ export function Devices() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            {t('devices.title')}
+            IoT Панель керування
           </h1>
           <p className="text-muted-foreground">
-            Manage and control your ESP32 devices
+            Управліть за даними своїх пристроїв через панель керування
           </p>
         </div>
         <Button className="gradient-primary" onClick={() => setAddDialogOpen(true)}>
@@ -114,6 +117,70 @@ export function Devices() {
           {t('devices.addDevice')}
         </Button>
       </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="gradient-card border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Задана середовища</p>
+                <p className="text-3xl font-bold text-foreground">{devices.length}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-primary/10">
+                <Package className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="gradient-card border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Спільно-групові</p>
+                <p className="text-3xl font-bold text-foreground">0</p>
+              </div>
+              <div className="p-3 rounded-lg bg-accent/10">
+                <Users className="h-6 w-6 text-accent" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Онлайн пристрої</p>
+                <p className="text-3xl font-bold text-success">
+                  {devices.filter(d => d.status === 'online').length}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-success/10">
+                <Activity className="h-6 w-6 text-success" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Офлайн пристрої</p>
+                <p className="text-3xl font-bold text-destructive">
+                  {devices.filter(d => d.status === 'offline').length}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-destructive/10">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
