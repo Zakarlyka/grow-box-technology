@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Droplets, Lightbulb, Wind, Flame, Clock, Snowflake, CloudRain } from 'lucide-react';
 import { useDeviceControls } from '@/hooks/useDeviceControls';
 import { useState, useEffect } from 'react';
@@ -35,6 +36,21 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
   const [irrigating, setIrrigating] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
+  
+  // Temperature control settings
+  const [tempMin, setTempMin] = useState(24);
+  const [tempMax, setTempMax] = useState(26);
+  
+  // Pump duration setting
+  const [pumpDuration, setPumpDuration] = useState(30);
+  
+  // Light schedule settings
+  const [lightStartTime, setLightStartTime] = useState('08:00');
+  const [lightEndTime, setLightEndTime] = useState('20:00');
+  
+  // Ventilation interval settings
+  const [ventOnMinutes, setVentOnMinutes] = useState(5);
+  const [ventOffMinutes, setVentOffMinutes] = useState(2);
 
   const getControlState = (controlName: string) => {
     const control = controls.find(c => c.control_name === controlName);
@@ -61,14 +77,14 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
 
   const handleStartIrrigation = async () => {
     setIrrigating(true);
-    setRemainingTime(30);
+    setRemainingTime(pumpDuration);
     
     // Turn on water pump
     await updateControl('water_pump', true, 100);
     
     toast({
       title: 'Полив розпочато',
-      description: 'Водяна помпа увімкнена на 30 секунд',
+      description: `Водяна помпа увімкнена на ${pumpDuration} секунд`,
     });
   };
 
@@ -109,10 +125,33 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Note about pump control */}
-        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-          <p className="text-xs text-green-400">
-            Додаємо пункт - температура чим встановлено інтервал типу (встереже (як правило 24 - 26) за дорікло вище це ми і температура стає вишою 10 вімкнеться кондиціонер, а якщо нижче я температура наступ залишного діапазону то вімкнеться обігрів)
+        {/* Temperature Control Settings */}
+        <div className="p-4 rounded-lg bg-muted/30 border border-border/30">
+          <Label className="text-base mb-3 block">Автоматичне керування температурою</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Мін. температура (°C)</Label>
+              <Input
+                type="number"
+                value={tempMin}
+                onChange={(e) => setTempMin(Number(e.target.value))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Макс. температура (°C)</Label>
+              <Input
+                type="number"
+                value={tempMax}
+                onChange={(e) => setTempMax(Number(e.target.value))}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Якщо температура нижче {tempMin}°C - увімкнеться обігрівач
+            <br />
+            Якщо температура вище {tempMax}°C - увімкнеться кондиціонер
           </p>
         </div>
 
@@ -190,25 +229,55 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
                     className="w-full"
                   />
                   
-                  {/* Schedule options */}
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <div className="p-2 rounded bg-green-500/10 border border-green-500/30">
-                      <p className="text-xs text-green-400">
-                        {control.name === 'light' 
-                          ? 'можливість (функція) встановити час початку світлення (00:00)'
-                          : control.name === 'ventilation'
-                          ? 'можливість (функція) встановити інтервал (на паралелі 5хв вкл та 2хв вико)'
-                          : 'можливість (функція) встановити інтервал'}
-                      </p>
+                  {/* Light schedule settings */}
+                  {control.name === 'light' && (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Початок світлення</Label>
+                        <Input
+                          type="time"
+                          value={lightStartTime}
+                          onChange={(e) => setLightStartTime(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Кінець світлення</Label>
+                        <Input
+                          type="time"
+                          value={lightEndTime}
+                          onChange={(e) => setLightEndTime(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                    <div className="p-2 rounded bg-green-500/10 border border-green-500/30">
-                      <p className="text-xs text-green-400">
-                        {control.name === 'light'
-                          ? 'можливість (функція) встановити час кінця світлення (00:00)'
-                          : 'можливість (функція) встановити інтервал (на паралелі 5хв вкл та 2хв вико)'}
-                      </p>
+                  )}
+                  
+                  {/* Ventilation interval settings */}
+                  {control.name === 'ventilation' && (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Працює (хв)</Label>
+                        <Input
+                          type="number"
+                          value={ventOnMinutes}
+                          onChange={(e) => setVentOnMinutes(Number(e.target.value))}
+                          min={1}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Вимкнено (хв)</Label>
+                        <Input
+                          type="number"
+                          value={ventOffMinutes}
+                          onChange={(e) => setVentOffMinutes(Number(e.target.value))}
+                          min={1}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
