@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Droplets, Lightbulb, Wind, Flame, Clock } from 'lucide-react';
+import { Droplets, Lightbulb, Wind, Flame, Clock, Snowflake, CloudRain } from 'lucide-react';
 import { useDeviceControls } from '@/hooks/useDeviceControls';
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
@@ -22,10 +22,12 @@ interface ControlConfig {
 }
 
 const CONTROLS: ControlConfig[] = [
-  { name: 'water_pump', label: 'Водна помпа', icon: Droplets, color: 'text-blue-400', hasIntensity: false },
+  { name: 'water_pump', label: 'Водяна помпа', icon: Droplets, color: 'text-blue-400', hasIntensity: false },
   { name: 'light', label: 'Освітлення', icon: Lightbulb, color: 'text-yellow-400', hasIntensity: true },
   { name: 'ventilation', label: 'Вентиляція', icon: Wind, color: 'text-cyan-400', hasIntensity: true },
   { name: 'heater', label: 'Обігрівач', icon: Flame, color: 'text-orange-400', hasIntensity: true },
+  { name: 'air_conditioner', label: 'Кондиціонер', icon: Snowflake, color: 'text-blue-300', hasIntensity: true },
+  { name: 'humidifier', label: 'Зволожувач повітря', icon: CloudRain, color: 'text-indigo-400', hasIntensity: true },
 ];
 
 export function DeviceControls({ deviceId }: DeviceControlsProps) {
@@ -107,6 +109,13 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Note about pump control */}
+        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+          <p className="text-xs text-green-400">
+            Додаємо пункт - температура чим встановлено інтервал типу (встереже (як правило 24 - 26) за дорікло вище це ми і температура стає вишою 10 вімкнеться кондиціонер, а якщо нижче я температура наступ залишного діапазону то вімкнеться обігрів)
+          </p>
+        </div>
+
         {/* Quick Irrigation Button */}
         <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
           <div className="flex items-center justify-between mb-3">
@@ -127,6 +136,11 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           >
             {irrigating ? 'Полив триває...' : 'Запустити полив (30с)'}
           </Button>
+          <div className="mt-2 p-2 rounded bg-green-500/10 border border-green-500/30">
+            <p className="text-xs text-green-400">
+              встановити час помпу в секундах (варіпредел при встановленні 10 сек - помпа працює 10 сек і вимикається)
+            </p>
+          </div>
         </div>
 
         {CONTROLS.map((control) => {
@@ -151,7 +165,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
               </div>
 
               {control.hasIntensity && state.value && (
-                <div className="pl-4 space-y-2">
+                <div className="pl-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm text-muted-foreground">
                       {control.name === 'light' 
@@ -175,6 +189,26 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
                     onValueCommit={() => handleIntensityCommit(control.name)}
                     className="w-full"
                   />
+                  
+                  {/* Schedule options */}
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="p-2 rounded bg-green-500/10 border border-green-500/30">
+                      <p className="text-xs text-green-400">
+                        {control.name === 'light' 
+                          ? 'можливість (функція) встановити час початку світлення (00:00)'
+                          : control.name === 'ventilation'
+                          ? 'можливість (функція) встановити інтервал (на паралелі 5хв вкл та 2хв вико)'
+                          : 'можливість (функція) встановити інтервал'}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded bg-green-500/10 border border-green-500/30">
+                      <p className="text-xs text-green-400">
+                        {control.name === 'light'
+                          ? 'можливість (функція) встановити час кінця світлення (00:00)'
+                          : 'можливість (функція) встановити інтервал (на паралелі 5хв вкл та 2хв вико)'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

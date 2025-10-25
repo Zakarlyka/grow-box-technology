@@ -17,9 +17,8 @@ import { useDevices } from '@/hooks/useDevices';
 import { useDeviceLogs } from '@/hooks/useDeviceLogs';
 import { DeviceControls } from '@/components/DeviceControls';
 import { LogsTable } from '@/components/LogsTable';
-import { DeviceComments } from '@/components/DeviceComments';
-import { DeviceTimeline } from '@/components/DeviceTimeline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart-simple';
 import {
   AlertDialog,
@@ -39,6 +38,7 @@ export default function DeviceDetail() {
   const device = devices.find(d => d.id === id);
   const { logs, latestLog } = useDeviceLogs(id);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [timeInterval, setTimeInterval] = useState('24h');
 
   const handleDelete = async () => {
     if (id) {
@@ -182,7 +182,16 @@ export default function DeviceDetail() {
         {/* Chart */}
         <Card className="gradient-card border-border/50">
           <CardHeader>
-            <CardTitle>Історія показників (24 год)</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Історія показників ({timeInterval === '24h' ? '24 год' : timeInterval === '7d' ? '7 днів' : '30 днів'})</CardTitle>
+              <Tabs value={timeInterval} onValueChange={setTimeInterval}>
+                <TabsList>
+                  <TabsTrigger value="24h">24 год</TabsTrigger>
+                  <TabsTrigger value="7d">7 днів</TabsTrigger>
+                  <TabsTrigger value="30d">30 днів</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -233,15 +242,6 @@ export default function DeviceDetail() {
 
       {/* Logs Table */}
       <LogsTable deviceId={device.id} />
-
-      {/* Additional Content */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Comments */}
-        <DeviceComments deviceId={device.id} />
-        
-        {/* Timeline */}
-        <DeviceTimeline deviceId={device.id} />
-      </div>
 
       {device.last_seen && (
         <p className="text-sm text-muted-foreground text-center">
