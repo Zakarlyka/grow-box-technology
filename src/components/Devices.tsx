@@ -2,39 +2,28 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Plus,
-  Package,
-  Users,
-  Activity,
-  AlertCircle
-} from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Plus, Package, Users, Activity, AlertCircle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useDevices } from '@/hooks/useDevices';
 import { AddDeviceDialog } from './AddDeviceDialog';
 import { DeviceCard } from './DeviceCard';
-
 export function Devices() {
-  const { t } = useTranslation();
-  const { devices, loading, deleteDevice, fetchDevices } = useDevices();
+  const {
+    t
+  } = useTranslation();
+  const {
+    devices,
+    loading,
+    deleteDevice,
+    fetchDevices
+  } = useDevices();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
-
   const handleDeleteClick = (deviceId: string) => {
     setDeviceToDelete(deviceId);
     setDeleteDialogOpen(true);
   };
-
   const handleDeleteConfirm = async () => {
     if (deviceToDelete) {
       await deleteDevice(deviceToDelete);
@@ -42,9 +31,7 @@ export function Devices() {
       setDeviceToDelete(null);
     }
   };
-
-  return (
-    <div className="flex-1 space-y-6 p-6">
+  return <div className="flex-1 space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -62,33 +49,9 @@ export function Devices() {
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="gradient-card border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Задана середовища</p>
-                <p className="text-3xl font-bold text-foreground">{devices.length}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
         
-        <Card className="gradient-card border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Спільно-групові</p>
-                <p className="text-3xl font-bold text-foreground">0</p>
-              </div>
-              <div className="p-3 rounded-lg bg-accent/10">
-                <Users className="h-6 w-6 text-accent" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        
+        
 
         <Card className="gradient-card border-border/50">
           <CardContent className="pt-6">
@@ -123,31 +86,19 @@ export function Devices() {
         </Card>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
+      {loading ? <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : devices.length === 0 ? (
-        <div className="text-center py-12">
+        </div> : devices.length === 0 ? <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Пристрої не знайдено</p>
           <Button onClick={() => setAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Додати перший пристрій
           </Button>
-        </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          {devices.map((device) => (
-            <DeviceCard key={device.id} device={device} />
-          ))}
-        </div>
-      )}
+        </div> : <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {devices.map(device => <DeviceCard key={device.id} device={device} />)}
+        </div>}
 
-      <AddDeviceDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        onDeviceAdded={fetchDevices}
-      />
+      <AddDeviceDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onDeviceAdded={fetchDevices} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -165,6 +116,5 @@ export function Devices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 }
