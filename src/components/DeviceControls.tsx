@@ -38,11 +38,15 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const [remainingTime, setRemainingTime] = useState(0);
   
   // Temperature control settings
-  const [tempMin, setTempMin] = useState(24);
-  const [tempMax, setTempMax] = useState(26);
+  const [targetTemp, setTargetTemp] = useState(26.0);
+  const [hysteresis, setHysteresis] = useState(2.0);
   
   // Pump duration setting
   const [pumpDuration, setPumpDuration] = useState(30);
+  
+  // Ventilation timer settings
+  const [ventWorkMinutes, setVentWorkMinutes] = useState(2);
+  const [ventPauseMinutes, setVentPauseMinutes] = useState(5);
   
   // Light schedule settings
   const [lightStartTime, setLightStartTime] = useState('08:00');
@@ -130,28 +134,30 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           <Label className="text-base mb-3 block">Автоматичне керування температурою</Label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-muted-foreground">Мін. температура (°C)</Label>
+              <Label className="text-xs text-muted-foreground">Бажана Температура (°C)</Label>
               <Input
                 type="number"
-                value={tempMin}
-                onChange={(e) => setTempMin(Number(e.target.value))}
+                step="0.1"
+                value={targetTemp}
+                onChange={(e) => setTargetTemp(Number(e.target.value))}
                 className="mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Макс. температура (°C)</Label>
+              <Label className="text-xs text-muted-foreground">Гістерезис (+/- °C)</Label>
               <Input
                 type="number"
-                value={tempMax}
-                onChange={(e) => setTempMax(Number(e.target.value))}
+                step="0.1"
+                value={hysteresis}
+                onChange={(e) => setHysteresis(Number(e.target.value))}
                 className="mt-1"
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Якщо температура нижче {tempMin}°C - увімкнеться обігрівач
+            Температура буде підтримуватися в діапазоні {(targetTemp - hysteresis).toFixed(1)}°C - {(targetTemp + hysteresis).toFixed(1)}°C
             <br />
-            Якщо температура вище {tempMax}°C - увімкнеться кондиціонер
+            Нижче мінімуму - увімкнеться обігрівач, вище максимуму - кондиціонер
           </p>
         </div>
 
@@ -180,6 +186,39 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
               встановити час помпу в секундах (варіпредел при встановленні 10 сек - помпа працює 10 сек і вимикається)
             </p>
           </div>
+        </div>
+
+        {/* Ventilation Timer Settings */}
+        <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+          <div className="flex items-center gap-3 mb-3">
+            <Wind className="h-5 w-5 text-cyan-400" />
+            <Label className="text-base">Таймер Провітрювання</Label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Час Роботи (ХВ)</Label>
+              <Input
+                type="number"
+                value={ventWorkMinutes}
+                onChange={(e) => setVentWorkMinutes(Number(e.target.value))}
+                min={1}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Час Паузи (ХВ)</Label>
+              <Input
+                type="number"
+                value={ventPauseMinutes}
+                onChange={(e) => setVentPauseMinutes(Number(e.target.value))}
+                min={1}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Витяжка буде працювати {ventWorkMinutes} хв, потім {ventPauseMinutes} хв пауза
+          </p>
         </div>
 
         {CONTROLS.map((control) => {
