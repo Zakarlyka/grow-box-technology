@@ -1,14 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Droplets, Lightbulb, Wind, Flame, Clock, Snowflake, CloudRain } from 'lucide-react';
 import { useDeviceControls } from '@/hooks/useDeviceControls';
-import { useState, useEffect } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface DeviceControlsProps {
   deviceId: string;
@@ -34,15 +31,16 @@ const CONTROLS: ControlConfig[] = [
 export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const { controls, loading, updateControl } = useDeviceControls(deviceId);
   const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
-  const [irrigating, setIrrigating] = useState(false);
-  const [remainingTime, setRemainingTime] = useState(0);
   
   // Temperature control settings
   const [targetTemp, setTargetTemp] = useState(26.0);
   const [hysteresis, setHysteresis] = useState(2.0);
   
-  // Pump duration setting
-  const [pumpDuration, setPumpDuration] = useState(30);
+  // Irrigation settings (automatic watering)
+  const [minSoilMoisture, setMinSoilMoisture] = useState(30);
+  const [maxSoilMoisture, setMaxSoilMoisture] = useState(80);
+  const [irrigationDuration, setIrrigationDuration] = useState(10);
+  const [irrigationPause, setIrrigationPause] = useState(1);
   
   // Ventilation timer settings
   const [ventWorkMinutes, setVentWorkMinutes] = useState(2);
@@ -53,9 +51,6 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const [lightEndTime, setLightEndTime] = useState('20:00');
   
   // Ventilation interval settings
-  const [ventOnMinutes, setVentOnMinutes] = useState(5);
-  const [ventOffMinutes, setVentOffMinutes] = useState(2);
-
   const getControlState = (controlName: string) => {
     const control = controls.find(c => c.control_name === controlName);
     return {
@@ -78,37 +73,6 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     const intensity = localIntensities[controlName] ?? state.intensity;
     await updateControl(controlName, state.value, intensity);
   };
-
-  const handleStartIrrigation = async () => {
-    setIrrigating(true);
-    setRemainingTime(pumpDuration);
-    
-    // Turn on water pump
-    await updateControl('water_pump', true, 100);
-    
-    toast({
-      title: 'Полив розпочато',
-      description: `Водяна помпа увімкнена на ${pumpDuration} секунд`,
-    });
-  };
-
-  // Countdown timer for irrigation
-  useEffect(() => {
-    if (remainingTime > 0) {
-      const timer = setTimeout(() => {
-        setRemainingTime(remainingTime - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (irrigating && remainingTime === 0) {
-      // Turn off water pump after 30 seconds
-      updateControl('water_pump', false, 0);
-      setIrrigating(false);
-      toast({
-        title: 'Полив завершено',
-        description: 'Водяна помпа вимкнена',
-      });
-    }
-  }, [remainingTime, irrigating]);
 
   if (loading) {
     return (
@@ -161,29 +125,67 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           </p>
         </div>
 
-        {/* Quick Irrigation Button */}
+        {/* Irrigation Settings (Automatic Watering) */}
         <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Droplets className="h-5 w-5 text-blue-400" />
-              <Label className="text-base">Швидкий полив</Label>
-            </div>
-            {irrigating && (
-              <Badge variant="default" className="bg-blue-500">
-                {remainingTime}с
-              </Badge>
-            )}
+          <div className="flex items-center gap-3 mb-3">
+            <Droplets className="h-5 w-5 text-blue-400" />
+            <Label className="text-base">Налаштування Поливу</Label>
           </div>
-          <Button
-            onClick={handleStartIrrigation}
-            disabled={irrigating || loading}
-            className="w-full bg-blue-500 hover:bg-blue-600"
-          >
-            {irrigating ? 'Полив триває...' : 'Запустити полив (30с)'}
-          </Button>
-          <div className="mt-2 p-2 rounded bg-green-500/10 border border-green-500/30">
-            <p className="text-xs text-green-400">
-              встановити час помпу в секундах (варіпредел при встановленні 10 сек - помпа працює 10 сек і вимикається)
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Мін. Вологість Ґрунту (%)</Label>
+              <Input
+                type="number"
+                value={minSoilMoisture}
+                onChange={(e) => setMinSoilMoisture(Number(e.target.value))}
+                min={0}
+                max={100}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Макс. Вологість Ґрунту (%)</Label>
+              <Input
+                type="number"
+                value={maxSoilMoisture}
+                onChange={(e) => setMaxSoilMoisture(Number(e.target.value))}
+                min={0}
+                max={100}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Тривалість Поливу (СЕК)</Label>
+              <Input
+                type="number"
+                value={irrigationDuration}
+                onChange={(e) => setIrrigationDuration(Number(e.target.value))}
+                min={1}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Пауза між Поливами (ХВ)</Label>
+              <Input
+                type="number"
+                value={irrigationPause}
+                onChange={(e) => setIrrigationPause(Number(e.target.value))}
+                min={1}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="mt-3 space-y-1">
+            <p className="text-xs text-blue-300">
+              • Полив вмикається, якщо вологість &lt; {minSoilMoisture}%
+            </p>
+            <p className="text-xs text-blue-300">
+              • Полив вимикається, якщо вологість &gt; {maxSoilMoisture}%
+            </p>
+            <p className="text-xs text-blue-300">
+              • Помпа працює {irrigationDuration} сек, потім пауза {irrigationPause} хв для вбирання води
             </p>
           </div>
         </div>
@@ -221,107 +223,81 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           </p>
         </div>
 
-        {CONTROLS.map((control) => {
-          const state = getControlState(control.name);
-          const intensity = localIntensities[control.name] ?? state.intensity;
-          const Icon = control.icon;
+        {/* Device Controls with Toggles */}
+        <div className="space-y-3">
+          <Label className="text-base block">Керування приладами</Label>
+          {CONTROLS.map((control) => {
+            const state = getControlState(control.name);
+            const intensity = localIntensities[control.name] ?? state.intensity;
+            const Icon = control.icon;
 
-          return (
-            <div key={control.name} className="space-y-3">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/30">
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-5 w-5 ${control.color}`} />
-                  <Label htmlFor={control.name} className="text-base cursor-pointer">
-                    {control.label}
-                  </Label>
-                </div>
-                <Switch
-                  id={control.name}
-                  checked={state.value}
-                  onCheckedChange={(checked) => handleToggle(control.name, checked)}
-                />
-              </div>
-
-              {control.hasIntensity && state.value && (
-                <div className="pl-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm text-muted-foreground">
-                      {control.name === 'light' 
-                        ? 'Тривалість світлового дня' 
-                        : control.name === 'ventilation'
-                        ? 'Швидкість обертання вентилятора'
-                        : 'Інтенсивність'}
+            return (
+              <div key={control.name} className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${control.color}`} />
+                    <Label htmlFor={control.name} className="text-base cursor-pointer">
+                      {control.label}
                     </Label>
-                    <span className="text-sm font-medium">
-                      {control.name === 'light' 
-                        ? `${Math.round(intensity * 24 / 100)} год` 
-                        : `${intensity}%`}
-                    </span>
                   </div>
-                  <Slider
-                    value={[intensity]}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onValueChange={(value) => handleIntensityChange(control.name, value)}
-                    onValueCommit={() => handleIntensityCommit(control.name)}
-                    className="w-full"
+                  <Switch
+                    id={control.name}
+                    checked={state.value}
+                    onCheckedChange={(checked) => handleToggle(control.name, checked)}
                   />
-                  
-                  {/* Light schedule settings */}
-                  {control.name === 'light' && (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Початок світлення</Label>
-                        <Input
-                          type="time"
-                          value={lightStartTime}
-                          onChange={(e) => setLightStartTime(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Кінець світлення</Label>
-                        <Input
-                          type="time"
-                          value={lightEndTime}
-                          onChange={(e) => setLightEndTime(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Ventilation interval settings */}
-                  {control.name === 'ventilation' && (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Працює (хв)</Label>
-                        <Input
-                          type="number"
-                          value={ventOnMinutes}
-                          onChange={(e) => setVentOnMinutes(Number(e.target.value))}
-                          min={1}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Вимкнено (хв)</Label>
-                        <Input
-                          type="number"
-                          value={ventOffMinutes}
-                          onChange={(e) => setVentOffMinutes(Number(e.target.value))}
-                          min={1}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {control.hasIntensity && state.value && (
+                  <div className="pl-4 pr-4 py-3 space-y-3 bg-muted/20 rounded-lg border border-border/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-muted-foreground">
+                        {control.name === 'light' 
+                          ? 'Інтенсивність освітлення' 
+                          : control.name === 'ventilation'
+                          ? 'Швидкість вентилятора'
+                          : 'Інтенсивність'}
+                      </Label>
+                      <span className="text-sm font-medium">{intensity}%</span>
+                    </div>
+                    <Slider
+                      value={[intensity]}
+                      min={0}
+                      max={100}
+                      step={5}
+                      onValueChange={(value) => handleIntensityChange(control.name, value)}
+                      onValueCommit={() => handleIntensityCommit(control.name)}
+                      className="w-full"
+                    />
+                    
+                    {/* Light schedule settings */}
+                    {control.name === 'light' && (
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-border/30">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Початок</Label>
+                          <Input
+                            type="time"
+                            value={lightStartTime}
+                            onChange={(e) => setLightStartTime(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Кінець</Label>
+                          <Input
+                            type="time"
+                            value={lightEndTime}
+                            onChange={(e) => setLightEndTime(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
