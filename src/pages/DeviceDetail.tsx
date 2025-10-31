@@ -258,75 +258,73 @@ export default function DeviceDetail() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Chart */}
-        <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>
-                Історія показників (
-                {timeInterval === '1h' ? '1 год' : 
-                 timeInterval === '6h' ? '6 год' : 
-                 timeInterval === '12h' ? '12 год' :
-                 timeInterval === '24h' ? '24 год' : '7 днів'})
-              </CardTitle>
-              <Tabs value={timeInterval} onValueChange={setTimeInterval}>
-                <TabsList>
-                  <TabsTrigger value="1h">1 год</TabsTrigger>
-                  <TabsTrigger value="6h">6 год</TabsTrigger>
-                  <TabsTrigger value="12h">12 год</TabsTrigger>
-                  <TabsTrigger value="24h">24 год</TabsTrigger>
-                  <TabsTrigger value="7d">7 днів</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              {chartData.length > 0 ? (
-                <ChartContainer config={{}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="temperature" 
-                        stroke="hsl(0 75% 60%)" 
-                        strokeWidth={2} 
-                        name="Температура"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="humidity" 
-                        stroke="hsl(210 100% 56%)" 
-                        strokeWidth={2}
-                        name="Вологість"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="soil_moisture" 
-                        stroke="hsl(120 60% 45%)" 
-                        strokeWidth={2}
-                        name="Вологість ґрунту"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Немає даних для відображення</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Device Controls */}
+      <DeviceControls deviceId={device.id} />
 
-        {/* Device Controls */}
-        <DeviceControls deviceId={device.id} />
-      </div>
+      {/* Chart */}
+      <Card className="gradient-card border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              Історія показників (
+              {timeInterval === '1h' ? '1 год' : 
+               timeInterval === '6h' ? '6 год' : 
+               timeInterval === '12h' ? '12 год' :
+               timeInterval === '24h' ? '24 год' : '7 днів'})
+            </CardTitle>
+            <Tabs value={timeInterval} onValueChange={setTimeInterval}>
+              <TabsList>
+                <TabsTrigger value="1h">1 год</TabsTrigger>
+                <TabsTrigger value="6h">6 год</TabsTrigger>
+                <TabsTrigger value="12h">12 год</TabsTrigger>
+                <TabsTrigger value="24h">24 год</TabsTrigger>
+                <TabsTrigger value="7d">7 днів</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            {chartData.length > 0 ? (
+              <ChartContainer config={{}}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="temperature" 
+                      stroke="hsl(0 75% 60%)" 
+                      strokeWidth={2} 
+                      name="Температура"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="humidity" 
+                      stroke="hsl(210 100% 56%)" 
+                      strokeWidth={2}
+                      name="Вологість"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="soil_moisture" 
+                      stroke="hsl(120 60% 45%)" 
+                      strokeWidth={2}
+                      name="Вологість ґрунту"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Немає даних для відображення</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Logs Table */}
       <LogsTable deviceId={device.id} />
