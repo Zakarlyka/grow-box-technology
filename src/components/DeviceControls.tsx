@@ -20,6 +20,13 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const [targetTemp, setTargetTemp] = useState(26.0);
   const [hysteresis, setHysteresis] = useState(2.0);
   
+  // Humidity control settings
+  const [targetHumidity, setTargetHumidity] = useState(60);
+  const [humidityHysteresis, setHumidityHysteresis] = useState(5);
+  
+  // AC installation flag
+  const [isACInstalled, setIsACInstalled] = useState(false);
+  
   // Irrigation settings (automatic watering)
   const [minSoilMoisture, setMinSoilMoisture] = useState(30);
   const [maxSoilMoisture, setMaxSoilMoisture] = useState(80);
@@ -78,21 +85,61 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
       <h2 className="text-2xl font-bold">Панель Керування</h2>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Картка "Клімат" */}
+        {/* Картка "Клімат-Контроль" */}
         <Card className="gradient-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Thermometer className="h-5 w-5 text-orange-400" />
-              Клімат
+              Клімат-Контроль
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Auto settings */}
+            {/* Humidity settings */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Автоматичне керування</Label>
+              <Label className="text-sm font-medium">Вологість</Label>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Бажана T (°C)</Label>
+                  <Label className="text-xs text-muted-foreground">Бажана Вологість (%)</Label>
+                  <Input
+                    type="number"
+                    value={targetHumidity}
+                    onChange={(e) => setTargetHumidity(Number(e.target.value))}
+                    min={0}
+                    max={100}
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Гістерезис (+/- %)</Label>
+                  <Input
+                    type="number"
+                    value={humidityHysteresis}
+                    onChange={(e) => setHumidityHysteresis(Number(e.target.value))}
+                    min={0}
+                    max={50}
+                    className="mt-1 h-9"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
+                <div className="flex items-center gap-2">
+                  <CloudRain className="h-4 w-4 text-indigo-400" />
+                  <Label htmlFor="humidifier" className="text-sm cursor-pointer">Зволожувач</Label>
+                </div>
+                <Switch
+                  id="humidifier"
+                  checked={getControlState('humidifier').value}
+                  onCheckedChange={(checked) => handleToggle('humidifier', checked)}
+                />
+              </div>
+            </div>
+
+            {/* Temperature settings */}
+            <div className="space-y-3 pt-3 border-t border-border/30">
+              <Label className="text-sm font-medium">Температура</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Бажана Темп. (°C)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -102,7 +149,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Гістерезис (°C)</Label>
+                  <Label className="text-xs text-muted-foreground">Гістерезис (+/- °C)</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -112,14 +159,6 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Діапазон: {(targetTemp - hysteresis).toFixed(1)}°C - {(targetTemp + hysteresis).toFixed(1)}°C
-              </p>
-            </div>
-
-            {/* Manual controls */}
-            <div className="space-y-2 pt-3 border-t border-border/30">
-              <Label className="text-sm font-medium">Ручне керування</Label>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
                 <div className="flex items-center gap-2">
                   <Flame className="h-4 w-4 text-orange-400" />
@@ -134,14 +173,42 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
                 <div className="flex items-center gap-2">
                   <Snowflake className="h-4 w-4 text-blue-300" />
-                  <Label htmlFor="ac" className="text-sm cursor-pointer">Кондиціонер</Label>
+                  <Label htmlFor="ac-installed" className="text-sm cursor-pointer">Кондиціонер підключено</Label>
                 </div>
                 <Switch
-                  id="ac"
-                  checked={acState.value}
-                  onCheckedChange={(checked) => handleToggle('air_conditioner', checked)}
+                  id="ac-installed"
+                  checked={isACInstalled}
+                  onCheckedChange={setIsACInstalled}
                 />
               </div>
+              {isACInstalled && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20 ml-4">
+                  <div className="flex items-center gap-2">
+                    <Snowflake className="h-4 w-4 text-blue-300" />
+                    <Label htmlFor="ac" className="text-sm cursor-pointer">Кондиціонер</Label>
+                  </div>
+                  <Switch
+                    id="ac"
+                    checked={acState.value}
+                    onCheckedChange={(checked) => handleToggle('air_conditioner', checked)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Explanation text */}
+            <div className="pt-3 border-t border-border/30">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong>Автоматична логіка:</strong><br />
+                • Обігрівач (якщо &lt; {(targetTemp - hysteresis).toFixed(1)}°C)<br />
+                • Зволожувач (якщо &lt; {targetHumidity - humidityHysteresis}%)<br />
+                • Витяжку (якщо вологість &gt; {targetHumidity + humidityHysteresis}%)<br />
+                {isACInstalled ? (
+                  <>• Кондиціонер (якщо темп. &gt; {(targetTemp + hysteresis).toFixed(1)}°C)</>
+                ) : (
+                  <>• Витяжку (якщо темп. &gt; {(targetTemp + hysteresis).toFixed(1)}°C)</>
+                )}
+              </p>
             </div>
           </CardContent>
         </Card>
