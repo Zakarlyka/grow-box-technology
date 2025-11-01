@@ -436,29 +436,6 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
             </div>
           </CardContent>
         </Card>
-
-        {/* Картка "Зволожувач" (опціонально) */}
-        <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CloudRain className="h-5 w-5 text-indigo-400" />
-              Зволожувач повітря
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
-              <div className="flex items-center gap-2">
-                <CloudRain className="h-4 w-4 text-indigo-400" />
-                <Label htmlFor="humid" className="text-sm cursor-pointer font-medium">Зволожувач</Label>
-              </div>
-              <Switch
-                id="humid"
-                checked={getControlState('humidifier').value}
-                onCheckedChange={(checked) => handleToggle('humidifier', checked)}
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
