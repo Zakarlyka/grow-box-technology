@@ -1,135 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { type DeviceSettings, type DeviceControl } from '@/types';
 import { toast } from 'sonner';
 
-export interface DeviceControl {
-  id: string;
-  device_id: string;
-  control_type: string;
-  control_name: string;
-  value: boolean;
-  intensity?: number;
-  schedule?: any;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface DeviceSettings {
-  target_temp?: number;
-  temp_hyst?: number;
-  target_hum?: number;
-  hum_hyst?: number;
-  is_ac_installed?: boolean;
-  vent_work_minutes?: number;
-  vent_pause_minutes?: number;
-  min_soil_moisture?: number;
-  max_soil_moisture?: number;
-  irrigation_duration_sec?: number;
-  irrigation_pause_min?: number;
-  light_start_time?: string;
-  light_end_time?: string;
-}
-
-export function useDeviceControls(deviceId: string) {
-  const [controls, setControls] = useState<DeviceControl[]>([]);
+export function useDeviceControls(deviceId: string | null) {
   const [settings, setSettings] = useState<DeviceSettings | null>(null);
+  const [controls, setControls] = useState<DeviceControl[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchControls = async () => {
+  const fetchData = useCallback(async () => {
     if (!deviceId) return;
-
+    setLoading(true);
+    
     try {
-      const { data, error } = await supabase
+      // 1. Завантажити НАЛАШТУВАННЯ з 'devices.configuration'
+      const { data: deviceData, error: deviceError } = await supabase
+        .from('devices')
+        .select('configuration')
+        .eq('device_id', deviceId)
+        .single();
+
+      if (deviceError) throw new Error(`Помилка завантаження налаштувань: ${deviceError.message}`);
+      setSettings(deviceData?.configuration as unknown as DeviceSettings);
+
+      // 2. Завантажити СТАНИ з 'device_controls'
+      const { data: controlsData, error: controlsError } = await supabase
         .from('device_controls')
-        .select('*')
+        .select('control_name, value, intensity')
         .eq('device_id', deviceId);
 
-      if (error) throw error;
-      setControls(data || []);
+      if (controlsError) throw new Error(`Помилка завантаження станів: ${controlsError.message}`);
+      setControls(controlsData || []);
+
     } catch (error: any) {
-      console.error('Error fetching controls:', error);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchSettings = () => {
-    if (!deviceId) return;
-
-    try {
-      const stored = localStorage.getItem(`device_settings_${deviceId}`);
-      if (stored) {
-        setSettings(JSON.parse(stored));
-      }
-    } catch (error: any) {
-      console.error('Error fetching settings:', error);
-    }
-  };
-
-  const saveSettings = async (newSettings: DeviceSettings) => {
-    if (!deviceId) return;
-
-    setIsSaving(true);
-    try {
-      localStorage.setItem(`device_settings_${deviceId}`, JSON.stringify(newSettings));
-      setSettings(newSettings);
-      
-      toast.success('Налаштування збережено', {
-        description: 'Всі зміни успішно застосовано',
-      });
-    } catch (error: any) {
-      console.error('Error saving settings:', error);
-      toast.error('Помилка збереження', {
-        description: error.message,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const updateControl = async (controlName: string, value: boolean, intensity?: number) => {
-    try {
-      const { data, error } = await supabase
-        .from('device_controls')
-        .upsert({
-          device_id: deviceId,
-          control_name: controlName,
-          control_type: intensity !== undefined ? 'slider' : 'switch',
-          value,
-          intensity,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'device_id,control_name'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Update local state
-      setControls(prev => {
-        const existing = prev.find(c => c.control_name === controlName);
-        if (existing) {
-          return prev.map(c => c.control_name === controlName ? data : c);
-        }
-        return [...prev, data];
-      });
-
-      toast.success('Керування оновлено', {
-        description: `${controlName} ${value ? 'увімкнено' : 'вимкнено'}`,
-      });
-    } catch (error: any) {
-      console.error('Error updating control:', error);
-      toast.error('Помилка', {
-        description: error.message,
-      });
-    }
-  };
+  }, [deviceId]);
 
   useEffect(() => {
-    fetchControls();
-    fetchSettings();
+    fetchData();
+
+    if (!deviceId) return;
 
     // Subscribe to realtime updates
     const channel = supabase
@@ -144,7 +58,7 @@ export function useDeviceControls(deviceId: string) {
         },
         (payload) => {
           console.log('Control change:', payload);
-          fetchControls();
+          fetchData();
         }
       )
       .subscribe();
@@ -152,15 +66,78 @@ export function useDeviceControls(deviceId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [deviceId]);
+  }, [fetchData, deviceId]);
+
+  // Функція збереження, яка оновлює 'devices.configuration' в Supabase
+  const saveSettings = async (newSettings: DeviceSettings) => {
+    if (!deviceId) return;
+    setIsSaving(true);
+    
+    try {
+      const { error } = await supabase
+        .from('devices')
+        .update({ configuration: newSettings as any })
+        .eq('device_id', deviceId);
+
+      if (error) throw error;
+      setSettings(newSettings);
+      toast.success('Налаштування збережено в Supabase!');
+    } catch (error: any) {
+      toast.error(`Помилка збереження: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Функція оновлення стану, яка оновлює 'device_controls' в Supabase
+  const updateControl = async (controlName: string, value: boolean, intensity?: number) => {
+    if (!deviceId) return;
+    
+    // Оптимістичне оновлення UI
+    setControls(prev => {
+      const existing = prev.find(c => c.control_name === controlName);
+      if (existing) {
+        return prev.map(c =>
+          c.control_name === controlName
+            ? { ...c, value, intensity: intensity ?? c.intensity }
+            : c
+        );
+      }
+      return [...prev, { control_name: controlName, value, intensity: intensity ?? 50 }];
+    });
+
+    // Запит до Supabase
+    try {
+      const { error } = await supabase
+        .from('device_controls')
+        .upsert({
+          device_id: deviceId,
+          control_name: controlName,
+          control_type: intensity !== undefined ? 'slider' : 'switch',
+          value,
+          intensity: intensity ?? 50,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'device_id,control_name'
+        });
+
+      if (error) throw error;
+      
+      toast.success('Керування оновлено', {
+        description: `${controlName} ${value ? 'увімкнено' : 'вимкнено'}`,
+      });
+    } catch (error: any) {
+      toast.error(`Помилка перемикача: ${error.message}`);
+      fetchData(); // Відкат
+    }
+  };
 
   return {
-    controls,
     settings,
+    controls,
     loading,
     isSaving,
-    updateControl,
-    fetchControls,
     saveSettings,
+    updateControl,
   };
 }
