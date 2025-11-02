@@ -1,45 +1,52 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Droplets, Lightbulb, Wind, Flame, Thermometer, Snowflake, CloudRain } from 'lucide-react';
+import { Save, Droplets, Lightbulb, Wind, Flame, Thermometer, Snowflake, CloudRain } from 'lucide-react';
 import { useDeviceControls } from '@/hooks/useDeviceControls';
-import { useState } from 'react';
 
 interface DeviceControlsProps {
   deviceId: string;
 }
 
 export function DeviceControls({ deviceId }: DeviceControlsProps) {
-  const { controls, loading, updateControl } = useDeviceControls(deviceId);
-  const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
+  const { settings, controls, loading, isSaving, saveSettings, updateControl } = useDeviceControls(deviceId);
   
-  // Temperature control settings
+  const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
   const [targetTemp, setTargetTemp] = useState(26.0);
   const [hysteresis, setHysteresis] = useState(2.0);
-  
-  // Humidity control settings
   const [targetHumidity, setTargetHumidity] = useState(60);
   const [humidityHysteresis, setHumidityHysteresis] = useState(5);
-  
-  // AC installation flag
   const [isACInstalled, setIsACInstalled] = useState(false);
-  
-  // Irrigation settings (automatic watering)
   const [minSoilMoisture, setMinSoilMoisture] = useState(30);
   const [maxSoilMoisture, setMaxSoilMoisture] = useState(80);
   const [irrigationDuration, setIrrigationDuration] = useState(10);
   const [irrigationPause, setIrrigationPause] = useState(1);
-  
-  // Ventilation timer settings
   const [ventWorkMinutes, setVentWorkMinutes] = useState(2);
   const [ventPauseMinutes, setVentPauseMinutes] = useState(5);
-  
-  // Light schedule settings
   const [lightStartTime, setLightStartTime] = useState('08:00');
   const [lightEndTime, setLightEndTime] = useState('20:00');
+
+  useEffect(() => {
+    if (settings) {
+      setTargetTemp(settings.target_temp ?? 26.0);
+      setHysteresis(settings.temp_hyst ?? 2.0);
+      setTargetHumidity(settings.target_hum ?? 60);
+      setHumidityHysteresis(settings.hum_hyst ?? 5);
+      setIsACInstalled(settings.is_ac_installed ?? false);
+      setMinSoilMoisture(settings.min_soil_moisture ?? 30);
+      setMaxSoilMoisture(settings.max_soil_moisture ?? 80);
+      setIrrigationDuration(settings.irrigation_duration_sec ?? 10);
+      setIrrigationPause(settings.irrigation_pause_min ?? 1);
+      setVentWorkMinutes(settings.vent_work_minutes ?? 2);
+      setVentPauseMinutes(settings.vent_pause_minutes ?? 5);
+      setLightStartTime(settings.light_start_time ?? '08:00');
+      setLightEndTime(settings.light_end_time ?? '20:00');
+    }
+  }, [settings]);
   
   const getControlState = (controlName: string) => {
     const control = controls.find(c => c.control_name === controlName);
@@ -64,6 +71,25 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     await updateControl(controlName, state.value, intensity);
   };
 
+  const handleSaveSettings = async () => {
+    const newSettings = {
+      target_temp: targetTemp,
+      temp_hyst: hysteresis,
+      target_hum: targetHumidity,
+      hum_hyst: humidityHysteresis,
+      is_ac_installed: isACInstalled,
+      vent_work_minutes: ventWorkMinutes,
+      vent_pause_minutes: ventPauseMinutes,
+      min_soil_moisture: minSoilMoisture,
+      max_soil_moisture: maxSoilMoisture,
+      irrigation_duration_sec: irrigationDuration,
+      irrigation_pause_min: irrigationPause,
+      light_start_time: lightStartTime,
+      light_end_time: lightEndTime,
+    };
+    await saveSettings(newSettings);
+  };
+
   if (loading) {
     return (
       <div className="gradient-card border border-border/50 rounded-lg p-6">
@@ -81,8 +107,19 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const lightIntensity = localIntensities['light'] ?? lightState.intensity;
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
       <h2 className="text-2xl font-bold">Панель Керування</h2>
+      
+      {/* Floating Save Button */}
+      <Button
+        onClick={handleSaveSettings}
+        disabled={isSaving}
+        className="fixed bottom-6 right-6 z-50 shadow-lg"
+        size="lg"
+      >
+        <Save className="h-5 w-5 mr-2" />
+        {isSaving ? 'Збереження...' : 'Зберегти'}
+      </Button>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Картка "Клімат-Контроль" */}

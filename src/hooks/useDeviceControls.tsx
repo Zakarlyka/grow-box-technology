@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from './use-toast';
+import { toast } from 'sonner';
 
 export interface DeviceControl {
   id: string;
@@ -14,9 +14,27 @@ export interface DeviceControl {
   updated_at?: string;
 }
 
+export interface DeviceSettings {
+  target_temp?: number;
+  temp_hyst?: number;
+  target_hum?: number;
+  hum_hyst?: number;
+  is_ac_installed?: boolean;
+  vent_work_minutes?: number;
+  vent_pause_minutes?: number;
+  min_soil_moisture?: number;
+  max_soil_moisture?: number;
+  irrigation_duration_sec?: number;
+  irrigation_pause_min?: number;
+  light_start_time?: string;
+  light_end_time?: string;
+}
+
 export function useDeviceControls(deviceId: string) {
   const [controls, setControls] = useState<DeviceControl[]>([]);
+  const [settings, setSettings] = useState<DeviceSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchControls = async () => {
     if (!deviceId) return;
@@ -33,6 +51,40 @@ export function useDeviceControls(deviceId: string) {
       console.error('Error fetching controls:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSettings = () => {
+    if (!deviceId) return;
+
+    try {
+      const stored = localStorage.getItem(`device_settings_${deviceId}`);
+      if (stored) {
+        setSettings(JSON.parse(stored));
+      }
+    } catch (error: any) {
+      console.error('Error fetching settings:', error);
+    }
+  };
+
+  const saveSettings = async (newSettings: DeviceSettings) => {
+    if (!deviceId) return;
+
+    setIsSaving(true);
+    try {
+      localStorage.setItem(`device_settings_${deviceId}`, JSON.stringify(newSettings));
+      setSettings(newSettings);
+      
+      toast.success('Налаштування збережено', {
+        description: 'Всі зміни успішно застосовано',
+      });
+    } catch (error: any) {
+      console.error('Error saving settings:', error);
+      toast.error('Помилка збереження', {
+        description: error.message,
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -64,22 +116,20 @@ export function useDeviceControls(deviceId: string) {
         return [...prev, data];
       });
 
-      toast({
-        title: 'Керування оновлено',
+      toast.success('Керування оновлено', {
         description: `${controlName} ${value ? 'увімкнено' : 'вимкнено'}`,
       });
     } catch (error: any) {
       console.error('Error updating control:', error);
-      toast({
-        title: 'Помилка',
+      toast.error('Помилка', {
         description: error.message,
-        variant: 'destructive',
       });
     }
   };
 
   useEffect(() => {
     fetchControls();
+    fetchSettings();
 
     // Subscribe to realtime updates
     const channel = supabase
@@ -106,8 +156,11 @@ export function useDeviceControls(deviceId: string) {
 
   return {
     controls,
+    settings,
     loading,
+    isSaving,
     updateControl,
     fetchControls,
+    saveSettings,
   };
 }
