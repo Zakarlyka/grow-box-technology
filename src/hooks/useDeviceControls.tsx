@@ -14,15 +14,15 @@ export function useDeviceControls(deviceId: string | null) {
     setLoading(true);
     
     try {
-      // 1. Завантажити НАЛАШТУВАННЯ з 'devices.configuration'
-      const { data: deviceData, error: deviceError } = await supabase
+      // 1. Завантажити НАЛАШТУВАННЯ з 'devices.settings'
+      const result: any = await supabase
         .from('devices')
-        .select('configuration')
+        .select('settings')
         .eq('device_id', deviceId)
         .single();
 
-      if (deviceError) throw new Error(`Помилка завантаження налаштувань: ${deviceError.message}`);
-      setSettings(deviceData?.configuration as unknown as DeviceSettings);
+      if (result.error) throw new Error(`Помилка завантаження налаштувань: ${result.error.message}`);
+      setSettings(result.data?.settings as DeviceSettings);
 
       // 2. Завантажити СТАНИ з 'device_controls'
       const { data: controlsData, error: controlsError } = await supabase
@@ -74,12 +74,12 @@ export function useDeviceControls(deviceId: string | null) {
     setIsSaving(true);
     
     try {
-      const { error } = await supabase
+      const result: any = await supabase
         .from('devices')
-        .update({ configuration: newSettings as any })
+        .update({ settings: newSettings } as any)
         .eq('device_id', deviceId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setSettings(newSettings);
       toast.success('Налаштування збережено в Supabase!');
     } catch (error: any) {
