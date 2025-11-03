@@ -17,7 +17,7 @@ interface UserProfile {
   user_id: string;
   email: string;
   full_name?: string;
-  role: 'user' | 'developer' | 'admin';
+  user_role?: string;
   category: string;
   developer_id?: string;
   created_at: string;
@@ -45,10 +45,13 @@ const DeveloperCabinet = () => {
     if (!user) return;
     
     try {
-      // First get profiles
+      // Get profiles with roles from user_roles table
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          user_roles(app_role)
+        `)
         .eq('developer_id', user.id);
 
       if (profilesError) {
@@ -58,7 +61,7 @@ const DeveloperCabinet = () => {
 
       // Then get device counts for each user
       const usersWithDeviceCount = await Promise.all(
-        (profilesData || []).map(async (userProfile) => {
+        (profilesData || []).map(async (userProfile: any) => {
           const { count } = await supabase
             .from('devices')
             .select('*', { count: 'exact', head: true })
@@ -66,6 +69,7 @@ const DeveloperCabinet = () => {
           
           return {
             ...userProfile,
+            user_role: userProfile.user_roles?.[0]?.app_role || 'user',
             device_count: count || 0
           } as UserProfile;
         })
@@ -81,10 +85,13 @@ const DeveloperCabinet = () => {
 
   const fetchAllUsers = async () => {
     try {
-      // First get profiles
+      // Get profiles with roles from user_roles table
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          user_roles(app_role)
+        `)
         .neq('user_id', user?.id);
 
       if (profilesError) {
@@ -94,7 +101,7 @@ const DeveloperCabinet = () => {
 
       // Then get device counts for each user
       const usersWithDeviceCount = await Promise.all(
-        (profilesData || []).map(async (userProfile) => {
+        (profilesData || []).map(async (userProfile: any) => {
           const { count } = await supabase
             .from('devices')
             .select('*', { count: 'exact', head: true })
@@ -102,6 +109,7 @@ const DeveloperCabinet = () => {
           
           return {
             ...userProfile,
+            user_role: userProfile.user_roles?.[0]?.app_role || 'user',
             device_count: count || 0
           } as UserProfile;
         })
@@ -268,7 +276,7 @@ const DeveloperCabinet = () => {
                         <CardDescription>{userProfile.email}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        {getRoleBadge(userProfile.role)}
+                        {getRoleBadge(userProfile.user_role || 'user')}
                         <Badge variant="outline">{userProfile.category}</Badge>
                       </div>
                     </div>
@@ -381,7 +389,7 @@ const DeveloperCabinet = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {allUsers
-                          .filter(u => !u.developer_id && u.role === 'user')
+                          .filter(u => !u.developer_id && u.user_role === 'user')
                           .map((user) => (
                             <SelectItem key={user.user_id} value={user.user_id}>
                               {user.full_name || user.email}
@@ -416,19 +424,19 @@ const DeveloperCabinet = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">Розробників</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.role === 'developer').length}
+                      {allUsers.filter(u => u.user_role === 'developer').length}
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Незакріплених</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => !u.developer_id && u.role === 'user').length}
+                      {allUsers.filter(u => !u.developer_id && u.user_role === 'user').length}
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Адміністраторів</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.role === 'admin').length + 1}
+                      {allUsers.filter(u => u.user_role === 'admin').length + 1}
                     </p>
                   </div>
                 </div>
