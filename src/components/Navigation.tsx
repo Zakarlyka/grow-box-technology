@@ -9,7 +9,8 @@ import {
   Wifi, 
   Settings as SettingsIcon, 
   Code,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -44,6 +45,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       id: 'analytics',
       label: t('navigation.analytics'),
       icon: BarChart3,
+      roles: ['user', 'developer', 'admin']
+    },
+    {
+      id: 'library',
+      label: 'Бібліотека',
+      icon: BookOpen,
       roles: ['user', 'developer', 'admin']
     },
     {
