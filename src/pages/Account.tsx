@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { User, Mail, Shield, Lock, LogOut, Loader2 } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -17,6 +18,7 @@ interface Profile {
   full_name?: string;
   phone?: string;
   avatar_url?: string;
+  units?: 'metric' | 'imperial';
 }
 
 export default function Account() {
@@ -27,6 +29,8 @@ export default function Account() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -38,6 +42,13 @@ export default function Account() {
       loadProfile();
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setUnits(profile.units || 'metric');
+    }
+  }, [profile]);
 
   const loadProfile = async () => {
     if (!user) return;
@@ -66,6 +77,45 @@ export default function Account() {
       setLoading(false);
     }
   };
+
+  const handleProfileUpdate = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          units: units,
+        })
+        .eq('user_id', user.id);
+
+      if (error) {
+        toast({
+          title: 'Помилка',
+          description: 'Не вдалося оновити профіль',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Успіх!',
+          description: 'Профіль успішно оновлено',
+        });
+        await loadProfile();
+      }
+    } catch (err) {
+      console.error('Помилка оновлення профілю:', err);
+      toast({
+        title: 'Помилка',
+        description: 'Не вдалося оновити профіль',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  }, [fullName, units, user]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,45 +243,76 @@ export default function Account() {
                 Ваші дані акаунту
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Повне ім'я</Label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {profile.full_name || 'Не вказано'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Email</Label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{profile.email}</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Рівень доступу</Label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                  <span
-                    className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeColor(role)}`}
-                  >
-                    {getRoleLabel(role)}
-                  </span>
-                </div>
-              </div>
-
-              {profile.phone && (
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Телефон</Label>
+                  <Label htmlFor="full-name">Повне ім'я</Label>
+                  <Input
+                    id="full-name"
+                    type="text"
+                    placeholder="Введіть ваше ім'я"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Email</Label>
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
-                    <span className="text-sm">{profile.phone}</span>
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{profile.email}</span>
                   </div>
                 </div>
-              )}
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Рівень доступу</Label>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <span
+                      className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeColor(role)}`}
+                    >
+                      {getRoleLabel(role)}
+                    </span>
+                  </div>
+                </div>
+
+                {profile.phone && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Телефон</Label>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
+                      <span className="text-sm">{profile.phone}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="units">Налаштування одиниць</Label>
+                  <Select value={units} onValueChange={(value: 'metric' | 'imperial') => setUnits(value)}>
+                    <SelectTrigger id="units">
+                      <SelectValue placeholder="Виберіть одиниці" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="metric">Metric (°C)</SelectItem>
+                      <SelectItem value="imperial">Imperial (°F)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={updating}
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Оновлення...
+                    </>
+                  ) : (
+                    'Оновити профіль'
+                  )}
+                </Button>
+              </form>
             </CardContent>
           </Card>
 
