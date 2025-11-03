@@ -259,7 +259,7 @@ export default function DeviceDetail() {
       </Card>
 
       {/* Device Controls */}
-      <DeviceControls deviceId={device.id} />
+      <DeviceControls deviceId={device.device_id} />
 
       {/* Chart */}
       <Card className="gradient-card border-border/50">
