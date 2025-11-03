@@ -35,7 +35,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onSettingsClick={() => setActiveTab('settings')} />
+      <Header />
       <div className="flex min-h-[calc(100vh-4rem)]">
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="flex-1 overflow-auto pb-16 lg:pb-0">

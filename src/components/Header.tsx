@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,15 +11,12 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, User, Settings, LogOut, Globe } from 'lucide-react';
-
-interface HeaderProps {
-  onSettingsClick?: () => void;
-}
 import logoAgroHogwards from '@/assets/logo-agro-hogwards-new.png';
 
-export function Header({ onSettingsClick }: HeaderProps = {}) {
+export function Header() {
   const { t, i18n } = useTranslation();
   const { user, role, signOut, profile } = useAuth();
+  const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -95,7 +92,7 @@ export function Header({ onSettingsClick }: HeaderProps = {}) {
                 )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onSettingsClick}>
+              <DropdownMenuItem onClick={() => navigate('/account')}>
                 <Settings className="w-4 h-4 mr-2" />
                 {t('navigation.settings')}
               </DropdownMenuItem>
