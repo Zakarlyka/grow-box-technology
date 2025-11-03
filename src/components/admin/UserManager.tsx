@@ -30,11 +30,11 @@ export function UserManager() {
       
       // 3. ⭐️ ВИКЛИКАЄМО НАШУ НОВУ БЕЗПЕЧНУ RPC-ФУНКЦІЮ
       const { data, error } = await supabase
-        .rpc('admin_get_all_users'); // НЕ .from('profiles').select('*')
+        .rpc('admin_get_all_users' as any) as { data: UserProfileWithRole[] | null, error: any };
 
       if (error) throw error;
       
-      setUsers(data || []);
+      setUsers((data || []) as UserProfileWithRole[]);
 
     } catch (error: any) {
       console.error('Error loading users:', error);
