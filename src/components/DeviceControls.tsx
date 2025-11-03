@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+// Шляхи до shadcn/ui залишаємо з @/
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -6,15 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Save, Droplets, Lightbulb, Wind, Flame, Thermometer, Snowflake, CloudRain } from 'lucide-react';
-import { useDeviceControls } from '@/hooks/useDeviceControls';
+// ⚠️ Спроба використати відносний шлях, оскільки псевдонім '@/ ' не працює
+import { useDeviceControls } from '../hooks/useDeviceControls'; 
 
 interface DeviceControlsProps {
   deviceId: string;
 }
 
 export function DeviceControls({ deviceId }: DeviceControlsProps) {
+  // --- Хук ---
   const { settings, controls, loading, isSaving, saveSettings, updateControl } = useDeviceControls(deviceId);
   
+  // --- Локальний стан ---
   const [localIntensities, setLocalIntensities] = useState<Record<string, number>>({});
   const [targetTemp, setTargetTemp] = useState(26.0);
   const [hysteresis, setHysteresis] = useState(2.0);
@@ -30,6 +34,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const [lightStartTime, setLightStartTime] = useState('08:00');
   const [lightEndTime, setLightEndTime] = useState('20:00');
 
+  // --- Завантаження даних в стан ---
   useEffect(() => {
     if (settings) {
       setTargetTemp(settings.target_temp ?? 26.0);
@@ -48,6 +53,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     }
   }, [settings]);
   
+  // --- Обробники ---
   const getControlState = (controlName: string) => {
     const control = controls.find(c => c.control_name === controlName);
     return {
@@ -90,6 +96,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     await saveSettings(newSettings);
   };
 
+  // --- Стан завантаження ---
   if (loading) {
     return (
       <div className="gradient-card border border-border/50 rounded-lg p-6">
@@ -98,6 +105,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     );
   }
 
+  // --- Отримання станів для UI ---
   const heaterState = getControlState('heater');
   const acState = getControlState('air_conditioner');
   const ventState = getControlState('ventilation');
@@ -106,11 +114,12 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const lightState = getControlState('light');
   const lightIntensity = localIntensities['light'] ?? lightState.intensity;
 
+  // --- Рендер ---
   return (
     <div className="relative space-y-4">
       <h2 className="text-2xl font-bold">Панель Керування</h2>
       
-      {/* Floating Save Button */}
+      {/* --- Кнопка Зберегти --- */}
       <Button
         onClick={handleSaveSettings}
         disabled={isSaving}
@@ -121,8 +130,10 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
         {isSaving ? 'Збереження...' : 'Зберегти'}
       </Button>
       
+      {/* --- Сітка Карток (ЗІ ЗМІНЕНИМ ПОРЯДКОМ) --- */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Картка "Клімат-Контроль" */}
+        
+        {/* === 1. Картка "Клімат-Контроль" === */}
         <Card className="gradient-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -250,7 +261,75 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           </CardContent>
         </Card>
 
-        {/* Картка "Вентиляція" */}
+        {/* === 2. Картка "Освітлення" (ПЕРЕМІЩЕНО) === */}
+        <Card className="gradient-card border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-yellow-400" />
+              Освітлення
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Manual control */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-yellow-400" />
+                  <Label htmlFor="light" className="text-sm cursor-pointer font-medium">Світло</Label>
+                </div>
+                <Switch
+                  id="light"
+                  checked={lightState.value}
+                  onCheckedChange={(checked) => handleToggle('light', checked)}
+                />
+              </div>
+
+              {lightState.value && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Інтенсивність</Label>
+                    <span className="text-sm font-medium">{lightIntensity}%</span>
+                  </div>
+                  <Slider
+                    value={[lightIntensity]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={(value) => handleIntensityChange('light', value)}
+                    onValueCommit={() => handleIntensityCommit('light')}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Schedule settings */}
+            <div className="space-y-3 pt-3 border-t border-border/30">
+              <Label className="text-sm font-medium">Розклад</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Початок</Label>
+                  <Input
+                    type="time"
+                    value={lightStartTime}
+                    onChange={(e) => setLightStartTime(e.target.value)}
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Кінець</Label>
+                  <Input
+                    type="time"
+                    value={lightEndTime}
+                    onChange={(e) => setLightEndTime(e.target.value)}
+                    className="mt-1 h-9"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* === 3. Картка "Вентиляція" === */}
         <Card className="gradient-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -323,7 +402,7 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           </CardContent>
         </Card>
 
-        {/* Картка "Полив" */}
+        {/* === 4. Картка "Полив" === */}
         <Card className="gradient-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -406,73 +485,6 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
           </CardContent>
         </Card>
 
-        {/* Картка "Освітлення" */}
-        <Card className="gradient-card border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-yellow-400" />
-              Освітлення
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Manual control */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-yellow-400" />
-                  <Label htmlFor="light" className="text-sm cursor-pointer font-medium">Світло</Label>
-                </div>
-                <Switch
-                  id="light"
-                  checked={lightState.value}
-                  onCheckedChange={(checked) => handleToggle('light', checked)}
-                />
-              </div>
-
-              {lightState.value && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">Інтенсивність</Label>
-                    <span className="text-sm font-medium">{lightIntensity}%</span>
-                  </div>
-                  <Slider
-                    value={[lightIntensity]}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onValueChange={(value) => handleIntensityChange('light', value)}
-                    onValueCommit={() => handleIntensityCommit('light')}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Schedule settings */}
-            <div className="space-y-3 pt-3 border-t border-border/30">
-              <Label className="text-sm font-medium">Розклад</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Початок</Label>
-                  <Input
-                    type="time"
-                    value={lightStartTime}
-                    onChange={(e) => setLightStartTime(e.target.value)}
-                    className="mt-1 h-9"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Кінець</Label>
-                  <Input
-                    type="time"
-                    value={lightEndTime}
-                    onChange={(e) => setLightEndTime(e.target.value)}
-                    className="mt-1 h-9"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
