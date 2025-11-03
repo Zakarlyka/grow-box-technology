@@ -3,79 +3,87 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Settings, BarChart3, Shield } from 'lucide-react';
+import { Users, Settings, BarChart3, Shield, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface UserProfile {
+interface UserProfileWithRole {
   id: string;
   user_id: string;
   email: string;
   full_name?: string;
-  user_role?: string;
+  role: string;
   category: string;
   developer_id?: string;
   created_at: string;
   device_count?: number;
 }
 
+const fetchAndMergeUsers = async (queryBuilder: any): Promise<UserProfileWithRole[]> => {
+  const { data: profilesData, error: profilesError } = await queryBuilder;
+  if (profilesError) throw profilesError;
+
+  const { data: rolesData, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('user_id, app_role');
+  if (rolesError) throw rolesError;
+
+  const usersWithRoles = (profilesData || []).map((profile: any) => {
+    const userRole = (rolesData || []).find((role: any) => role.user_id === profile.user_id);
+    return {
+      ...profile,
+      role: userRole?.app_role || 'user',
+    };
+  });
+
+  const usersWithDeviceCount = await Promise.all(
+    usersWithRoles.map(async (userProfile: any) => {
+      const { count } = await supabase
+        .from('devices')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userProfile.user_id);
+      
+      return {
+        ...userProfile,
+        device_count: count || 0
+      } as UserProfileWithRole;
+    })
+  );
+
+  return usersWithDeviceCount;
+};
+
 const DeveloperCabinet = () => {
   const { user, role } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<UserProfileWithRole[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfileWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [newCategory, setNewCategory] = useState('');
-
+  
   useEffect(() => {
-    if (role === 'developer' || role === 'admin') {
+    if (role === 'developer' || role === 'admin' || role === 'superadmin') {
       fetchUsers();
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'superadmin') {
         fetchAllUsers();
       }
+    } else {
+      setLoading(false);
     }
   }, [role]);
 
   const fetchUsers = async () => {
     if (!user) return;
-    
     try {
-      // Get profiles with roles from user_roles table
-      const { data: profilesData, error: profilesError } = await supabase
+      const query = supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(app_role)
-        `)
+        .select('*')
         .eq('developer_id', user.id);
-
-      if (profilesError) {
-        console.error('Error fetching users:', profilesError);
-        return;
-      }
-
-      // Then get device counts for each user
-      const usersWithDeviceCount = await Promise.all(
-        (profilesData || []).map(async (userProfile: any) => {
-          const { count } = await supabase
-            .from('devices')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userProfile.user_id);
-          
-          return {
-            ...userProfile,
-            user_role: userProfile.user_roles?.[0]?.app_role || 'user',
-            device_count: count || 0
-          } as UserProfile;
-        })
-      );
-
-      setUsers(usersWithDeviceCount);
+        
+      const data = await fetchAndMergeUsers(query);
+      setUsers(data);
     } catch (err) {
       console.error('Error fetching users:', err);
     } finally {
@@ -85,37 +93,13 @@ const DeveloperCabinet = () => {
 
   const fetchAllUsers = async () => {
     try {
-      // Get profiles with roles from user_roles table
-      const { data: profilesData, error: profilesError } = await supabase
+      const query = supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(app_role)
-        `)
+        .select('*')
         .neq('user_id', user?.id);
-
-      if (profilesError) {
-        console.error('Error fetching all users:', profilesError);
-        return;
-      }
-
-      // Then get device counts for each user
-      const usersWithDeviceCount = await Promise.all(
-        (profilesData || []).map(async (userProfile: any) => {
-          const { count } = await supabase
-            .from('devices')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userProfile.user_id);
-          
-          return {
-            ...userProfile,
-            user_role: userProfile.user_roles?.[0]?.app_role || 'user',
-            device_count: count || 0
-          } as UserProfile;
-        })
-      );
-
-      setAllUsers(usersWithDeviceCount);
+        
+      const data = await fetchAndMergeUsers(query);
+      setAllUsers(data);
     } catch (err) {
       console.error('Error fetching all users:', err);
     }
@@ -145,7 +129,7 @@ const DeveloperCabinet = () => {
       });
 
       fetchUsers();
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'superadmin') {
         fetchAllUsers();
       }
       setSelectedUser('');
@@ -185,13 +169,17 @@ const DeveloperCabinet = () => {
     const colors = {
       user: 'default',
       developer: 'secondary',
-      admin: 'destructive'
+      admin: 'destructive',
+      moderator: 'secondary',
+      superadmin: 'destructive'
     };
     
     const labels = {
       user: 'Користувач',
-      developer: 'Розробник', 
-      admin: 'Адміністратор'
+      developer: 'Розробник',
+      admin: 'Адміністратор',
+      moderator: 'Модератор',
+      superadmin: 'Супер-Адмін'
     };
 
     return (
@@ -201,7 +189,7 @@ const DeveloperCabinet = () => {
     );
   };
 
-  if (role !== 'developer' && role !== 'admin') {
+  if (role !== 'developer' && role !== 'admin' && role !== 'superadmin') {
     return (
       <div className="flex-1 p-6 flex items-center justify-center">
         <Card>
@@ -218,7 +206,11 @@ const DeveloperCabinet = () => {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center p-8">Завантаження...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -244,7 +236,7 @@ const DeveloperCabinet = () => {
             <BarChart3 className="w-4 h-4 mr-2" />
             Аналітика
           </TabsTrigger>
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'superadmin') && (
             <TabsTrigger value="admin">
               <Settings className="w-4 h-4 mr-2" />
               Адміністрування
@@ -276,7 +268,7 @@ const DeveloperCabinet = () => {
                         <CardDescription>{userProfile.email}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        {getRoleBadge(userProfile.user_role || 'user')}
+                        {getRoleBadge(userProfile.role)}
                         <Badge variant="outline">{userProfile.category}</Badge>
                       </div>
                     </div>
@@ -370,7 +362,7 @@ const DeveloperCabinet = () => {
           </div>
         </TabsContent>
         
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'superadmin') && (
           <TabsContent value="admin" className="space-y-4">
             <Card>
               <CardHeader>
@@ -389,7 +381,7 @@ const DeveloperCabinet = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {allUsers
-                          .filter(u => !u.developer_id && u.user_role === 'user')
+                          .filter(u => !u.developer_id && u.role === 'user')
                           .map((user) => (
                             <SelectItem key={user.user_id} value={user.user_id}>
                               {user.full_name || user.email}
@@ -424,19 +416,19 @@ const DeveloperCabinet = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">Розробників</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.user_role === 'developer').length}
+                      {allUsers.filter(u => u.role === 'developer').length}
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Незакріплених</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => !u.developer_id && u.user_role === 'user').length}
+                      {allUsers.filter(u => !u.developer_id && u.role === 'user').length}
                     </p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Адміністраторів</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.user_role === 'admin').length + 1}
+                      {allUsers.filter(u => u.role === 'admin' || u.role === 'superadmin').length + 1}
                     </p>
                   </div>
                 </div>
