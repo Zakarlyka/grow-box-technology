@@ -37,9 +37,16 @@ interface Device {
   type: string;
   status: string;
   location?: string;
-  configuration: any;
+  settings?: any;
   last_seen: string;
+  last_seen_at?: string;
+  last_activity?: string;
+  last_temp?: number;
+  last_hum?: number;
+  user_id: string;
+  group_id?: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface DeviceControl {
@@ -369,7 +376,7 @@ export function DeviceManagement() {
                     size="sm"
                     onClick={() => {
                       setSelectedDevice(device);
-                      setDeviceSettings(device.configuration || deviceSettings);
+                      setDeviceSettings(device.settings || deviceSettings);
                       setShowSettingsDialog(true);
                     }}
                     className="flex-1"

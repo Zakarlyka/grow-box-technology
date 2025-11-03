@@ -11,6 +11,7 @@ import DeviceDetail from "./pages/DeviceDetail";
 import { RemoteControlPage } from "./pages/RemoteControlPage";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Account />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminPage />
           </ProtectedRoute>
         }
       />

@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Wifi, 
   Settings as SettingsIcon, 
-  Code
+  Code,
+  Shield
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -50,6 +51,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       label: 'Розробник',
       icon: Code,
       roles: ['developer', 'admin']
+    },
+    {
+      id: 'admin',
+      label: 'Адмін-панель',
+      icon: Shield,
+      roles: ['admin']
     }
   ];
 

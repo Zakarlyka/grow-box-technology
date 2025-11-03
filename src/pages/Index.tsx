@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Navigation } from '@/components/Navigation';
 import { Dashboard } from '@/components/Dashboard';
@@ -12,6 +13,15 @@ import DeveloperCabinet from '@/components/DeveloperCabinet';
 const Index = () => {
   const [activeTab, setActiveTab] = useState('devices');
   const { role } = useAuth();
+  const navigate = useNavigate();
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'admin') {
+      navigate('/admin');
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -37,7 +47,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex min-h-[calc(100vh-4rem)]">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
         <main className="flex-1 overflow-auto pb-16 lg:pb-0">
           {renderContent()}
         </main>
