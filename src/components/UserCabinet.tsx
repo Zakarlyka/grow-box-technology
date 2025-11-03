@@ -34,7 +34,7 @@ interface Device {
 }
 
 const UserCabinet = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, role, profile, refreshProfile } = useAuth();
   const { t } = useTranslation();
   const [devices, setDevices] = useState<Device[]>([]);
   const [groups, setGroups] = useState([]);
@@ -574,7 +574,9 @@ const UserCabinet = () => {
                 <div>
                   <Label>Роль</Label>
                   <Badge variant="outline" className="mt-1">
-                    {profile?.role === 'user' ? 'Користувач' : profile?.role}
+                    {role === 'user' ? 'Користувач' : 
+                     role === 'developer' ? 'Розробник' :
+                     role === 'moderator' ? 'Модератор' : 'Адміністратор'}
                   </Badge>
                 </div>
               </div>

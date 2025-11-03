@@ -14,7 +14,6 @@ interface Profile {
   id: string;
   user_id: string;
   email: string;
-  role: string;
   full_name?: string;
   phone?: string;
   avatar_url?: string;
@@ -22,7 +21,7 @@ interface Profile {
 
 export default function Account() {
   const navigate = useNavigate();
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, role, signOut, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [newPassword, setNewPassword] = useState('');
@@ -218,11 +217,9 @@ export default function Account() {
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border/20">
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   <span
-                    className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeColor(
-                      profile.role
-                    )}`}
+                    className={`text-xs px-2 py-1 rounded-md border ${getRoleBadgeColor(role)}`}
                   >
-                    {getRoleLabel(profile.role)}
+                    {getRoleLabel(role)}
                   </span>
                 </div>
               </div>

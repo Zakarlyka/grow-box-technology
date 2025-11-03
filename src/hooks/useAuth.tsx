@@ -13,6 +13,7 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   profile: any;
+  role: string;
   refreshProfile: () => Promise<void>;
 }
 
@@ -23,25 +24,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [role, setRole] = useState<string>('user');
 
   const refreshProfile = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Завантажити профіль (без ролі)
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .single();
       
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      } else {
+        setProfile(profileData);
       }
+
+      // Завантажити роль через безпечну функцію
+      // @ts-ignore - get_my_role не в автогенерованих типах
+      const roleResponse: any = await supabase.rpc('get_my_role');
       
-      setProfile(data);
+      if (roleResponse.error) {
+        console.error('Error fetching role:', roleResponse.error);
+        setRole('user'); // Значення за замовчуванням
+      } else {
+        const userRole = typeof roleResponse.data === 'string' ? roleResponse.data : 'user';
+        setRole(userRole);
+      }
     } catch (err) {
-      console.error('Profile fetch error:', err);
+      console.error('Profile/role fetch error:', err);
     }
   };
 
@@ -222,6 +236,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signInWithGitHub,
     signOut,
     profile,
+    role,
     refreshProfile,
   };
 

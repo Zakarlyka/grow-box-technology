@@ -18,7 +18,7 @@ interface NavigationProps {
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { role } = useAuth();
 
   const menuItems = [
     {
@@ -54,7 +54,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   ];
 
   const visibleItems = menuItems.filter(item => 
-    item.roles.includes(profile?.role || 'user')
+    item.roles.includes(role || 'user')
   );
 
   return (

@@ -25,7 +25,7 @@ interface UserProfile {
 }
 
 const DeveloperCabinet = () => {
-  const { user, profile } = useAuth();
+  const { user, role } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,13 +33,13 @@ const DeveloperCabinet = () => {
   const [newCategory, setNewCategory] = useState('');
 
   useEffect(() => {
-    if (profile?.role === 'developer' || profile?.role === 'admin') {
+    if (role === 'developer' || role === 'admin') {
       fetchUsers();
-      if (profile?.role === 'admin') {
+      if (role === 'admin') {
         fetchAllUsers();
       }
     }
-  }, [profile]);
+  }, [role]);
 
   const fetchUsers = async () => {
     if (!user) return;
@@ -137,7 +137,7 @@ const DeveloperCabinet = () => {
       });
 
       fetchUsers();
-      if (profile?.role === 'admin') {
+      if (role === 'admin') {
         fetchAllUsers();
       }
       setSelectedUser('');
@@ -193,7 +193,7 @@ const DeveloperCabinet = () => {
     );
   };
 
-  if (profile?.role !== 'developer' && profile?.role !== 'admin') {
+  if (role !== 'developer' && role !== 'admin') {
     return (
       <div className="flex-1 p-6 flex items-center justify-center">
         <Card>
@@ -236,7 +236,7 @@ const DeveloperCabinet = () => {
             <BarChart3 className="w-4 h-4 mr-2" />
             Аналітика
           </TabsTrigger>
-          {profile?.role === 'admin' && (
+          {role === 'admin' && (
             <TabsTrigger value="admin">
               <Settings className="w-4 h-4 mr-2" />
               Адміністрування
@@ -362,7 +362,7 @@ const DeveloperCabinet = () => {
           </div>
         </TabsContent>
         
-        {profile?.role === 'admin' && (
+        {role === 'admin' && (
           <TabsContent value="admin" className="space-y-4">
             <Card>
               <CardHeader>
@@ -416,7 +416,7 @@ const DeveloperCabinet = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">Розробників</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.role === 'developer').length + (profile?.role === 'developer' ? 1 : 0)}
+                      {allUsers.filter(u => u.role === 'developer').length}
                     </p>
                   </div>
                   <div>
@@ -428,7 +428,7 @@ const DeveloperCabinet = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">Адміністраторів</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.role === 'admin').length + (profile?.role === 'admin' ? 1 : 0)}
+                      {allUsers.filter(u => u.role === 'admin').length + 1}
                     </p>
                   </div>
                 </div>

@@ -11,7 +11,7 @@ import DeveloperCabinet from '@/components/DeveloperCabinet';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('devices');
-  const { profile } = useAuth();
+  const { role } = useAuth();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -26,7 +26,7 @@ const Index = () => {
       case 'settings':
         return <Settings />;
       case 'developer':
-        return profile?.role === 'developer' || profile?.role === 'admin' ? 
+        return role === 'developer' || role === 'admin' ? 
           <DeveloperCabinet /> : <Settings />;
       default:
         return <Devices />;

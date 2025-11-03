@@ -18,7 +18,7 @@ import logoAgroHogwards from '@/assets/logo-agro-hogwards-new.png';
 
 export function Header({ onSettingsClick }: HeaderProps = {}) {
   const { t, i18n } = useTranslation();
-  const { user, signOut, profile } = useAuth();
+  const { user, role, signOut, profile } = useAuth();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -85,10 +85,11 @@ export function Header({ onSettingsClick }: HeaderProps = {}) {
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium">{profile?.full_name || 'Користувач'}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
-                {profile?.role && (
+                {role && (
                   <Badge variant="outline" className="mt-1 text-xs">
-                    {profile.role === 'user' ? 'Користувач' : 
-                     profile.role === 'developer' ? 'Розробник' : 'Адміністратор'}
+                    {role === 'user' ? 'Користувач' : 
+                     role === 'developer' ? 'Розробник' : 
+                     role === 'moderator' ? 'Модератор' : 'Адміністратор'}
                   </Badge>
                 )}
               </div>
