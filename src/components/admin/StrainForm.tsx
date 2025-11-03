@@ -31,6 +31,9 @@ interface StrainFormProps {
     description: string | null;
     settings_by_phase: any;
     fertilizer_schedule: any;
+    info_url: string | null;
+    seed_to_harvest_days: number | null;
+    flowering_days: number | null;
   } | null;
   onSuccess: () => void;
 }
@@ -42,6 +45,9 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
   const [description, setDescription] = useState('');
   const [settingsByPhase, setSettingsByPhase] = useState('');
   const [fertilizerSchedule, setFertilizerSchedule] = useState('');
+  const [infoUrl, setInfoUrl] = useState('');
+  const [seedToHarvest, setSeedToHarvest] = useState('');
+  const [floweringDays, setFloweringDays] = useState('');
 
   useEffect(() => {
     if (strain) {
@@ -54,12 +60,18 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
       setFertilizerSchedule(
         strain.fertilizer_schedule ? JSON.stringify(strain.fertilizer_schedule, null, 2) : ''
       );
+      setInfoUrl(strain.info_url || '');
+      setSeedToHarvest(strain.seed_to_harvest_days?.toString() || '');
+      setFloweringDays(strain.flowering_days?.toString() || '');
     } else {
       setName('');
       setType('photoperiod');
       setDescription('');
       setSettingsByPhase('');
       setFertilizerSchedule('');
+      setInfoUrl('');
+      setSeedToHarvest('');
+      setFloweringDays('');
     }
   }, [strain, open]);
 
@@ -104,6 +116,9 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
         description: description.trim() || null,
         settings_by_phase: settingsJson,
         fertilizer_schedule: fertilizerJson,
+        info_url: infoUrl.trim() || null,
+        seed_to_harvest_days: seedToHarvest ? parseInt(seedToHarvest) : null,
+        flowering_days: floweringDays ? parseInt(floweringDays) : null,
       };
 
       if (strain) {
@@ -192,6 +207,39 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
               placeholder="Опис сорту..."
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="info_url">Посилання на Info (Seedfinder)</Label>
+            <Input
+              id="info_url"
+              value={infoUrl}
+              onChange={(e) => setInfoUrl(e.target.value)}
+              placeholder="https://en.seedfinder.eu/..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="seed_to_harvest_days">Дні (Авто)</Label>
+              <Input
+                id="seed_to_harvest_days"
+                type="number"
+                value={seedToHarvest}
+                onChange={(e) => setSeedToHarvest(e.target.value)}
+                placeholder="Напр. 70"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="flowering_days">Дні Цвітіння (Фото)</Label>
+              <Input
+                id="flowering_days"
+                type="number"
+                value={floweringDays}
+                onChange={(e) => setFloweringDays(e.target.value)}
+                placeholder="Напр. 55"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
