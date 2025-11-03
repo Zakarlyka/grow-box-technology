@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +36,7 @@ export function Header({ onSettingsClick }: HeaderProps = {}) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <img 
             src={logoAgroHogwards} 
             alt="Agro Hogwards Logo" 
@@ -44,7 +45,7 @@ export function Header({ onSettingsClick }: HeaderProps = {}) {
           <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Agro Hogwards
           </h1>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-2">
           {/* Language Selector */}
