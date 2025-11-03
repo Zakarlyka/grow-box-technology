@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Users, Loader2 } from 'lucide-react';
 
-// 1. Оновлюємо інтерфейс, щоб 'role' була обов'язковою
+// 1. Інтерфейс для даних, які повертає RPC
 interface UserProfileWithRole {
   id: string; // profile id
   user_id: string; // auth.users id
@@ -23,44 +23,24 @@ export function UserManager() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // 2. ⭐️ ОНОВЛЕНА ФУНКЦІЯ ЗАВАНТАЖЕННЯ
   const loadUsers = async () => {
     try {
       setLoading(true);
       
-      // 2. ⭐️ ПРАВИЛЬНИЙ ЗАПИТ: 
-      // Робимо 2 запити і з'єднуємо вручну.
-      // Головне - читати з 'user_roles', а не 'profiles.role'
+      // 3. ⭐️ ВИКЛИКАЄМО НАШУ НОВУ БЕЗПЕЧНУ RPC-ФУНКЦІЮ
+      const { data, error } = await supabase
+        .rpc('admin_get_all_users'); // НЕ .from('profiles').select('*')
 
-      // Завантажуємо профілі
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
+      if (error) throw error;
+      
+      setUsers(data || []);
 
-      if (profilesError) throw profilesError;
-
-      // Завантажуємо ролі
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, app_role');
-
-      if (rolesError) throw rolesError;
-
-      // 3. ⭐️ З'єднуємо дані
-      const usersWithRoles = (profilesData || []).map((profile: any) => {
-        const userRole = (rolesData || []).find((role: any) => role.user_id === profile.user_id);
-        return {
-          ...profile,
-          // 4. ⭐️ Використовуємо 'app_role' з 'user_roles'
-          role: userRole?.app_role || 'user', 
-        };
-      });
-
-      setUsers(usersWithRoles);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading users:', error);
       toast({
         title: 'Помилка',
-        description: 'Не вдалося завантажити список користувачів',
+        description: `Не вдалося завантажити список користувачів: ${error.message}`,
         variant: 'destructive',
       });
     } finally {
@@ -72,10 +52,10 @@ export function UserManager() {
     loadUsers();
   }, []);
 
+  // 4. ⭐️ ФУНКЦІЯ ЗМІНИ РОЛІ ЗАЛИШАЄТЬСЯ (вона працювала)
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
     try {
-      // 5. ⭐️ Оновлюємо 'user_roles', а не 'profiles'
       const { error } = await supabase
         .from('user_roles')
         .update({ app_role: newRole as any })
@@ -88,11 +68,11 @@ export function UserManager() {
         description: `Роль користувача успішно змінено на ${newRole}`,
       });
 
-      // Оновлюємо стан локально для миттєвого відображення
+      // Оновлюємо стан локально
       setUsers(prevUsers =>
         prevUsers.map(u => (u.user_id === userId ? { ...u, role: newRole } : u))
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
       toast({
         title: 'Помилка',
@@ -104,6 +84,7 @@ export function UserManager() {
     }
   };
 
+  // 5. ⭐️ РЕШТА JSX - БЕЗ ЗМІН
   if (loading) {
     return (
       <Card>
@@ -149,7 +130,7 @@ export function UserManager() {
                   <Select
                     value={user.role}
                     onValueChange={(value) => handleRoleChange(user.user_id, value)}
-                    disabled={updatingId === user.user_id} // Блокуємо, поки йде оновлення
+                    disabled={updatingId === user.user_id}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Оберіть роль" />
