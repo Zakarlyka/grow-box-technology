@@ -10,37 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Settings, BarChart3, Shield, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+// 1. ⭐️ ІНТЕРФЕЙС, ЯКИЙ ПОВЕРТАЄ RPC
 interface UserProfileWithRole {
-  id: string;
-  user_id: string;
+  id: string; // profile id
+  user_id: string; // auth.users id
   email: string;
   full_name?: string;
-  role: string;
+  role: string; // 'user', 'developer', 'admin', 'superadmin'
   category: string;
   developer_id?: string;
   created_at: string;
   device_count?: number;
 }
 
-const fetchAndMergeUsers = async (queryBuilder: any): Promise<UserProfileWithRole[]> => {
-  const { data: profilesData, error: profilesError } = await queryBuilder;
-  if (profilesError) throw profilesError;
-
-  const { data: rolesData, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('user_id, app_role');
-  if (rolesError) throw rolesError;
-
-  const usersWithRoles = (profilesData || []).map((profile: any) => {
-    const userRole = (rolesData || []).find((role: any) => role.user_id === profile.user_id);
-    return {
-      ...profile,
-      role: userRole?.app_role || 'user',
-    };
-  });
-
+// 2. ⭐️ ФУНКЦІЯ ЗАВАНТАЖЕННЯ КІЛЬКОСТІ ПРИСТРОЇВ (ОКРЕМО)
+// Ми не можемо робити це в RPC, тому робимо це на клієнті
+const fetchDeviceCounts = async (users: UserProfileWithRole[]): Promise<UserProfileWithRole[]> => {
   const usersWithDeviceCount = await Promise.all(
-    usersWithRoles.map(async (userProfile: any) => {
+    users.map(async (userProfile) => {
       const { count } = await supabase
         .from('devices')
         .select('*', { count: 'exact', head: true })
@@ -49,10 +36,9 @@ const fetchAndMergeUsers = async (queryBuilder: any): Promise<UserProfileWithRol
       return {
         ...userProfile,
         device_count: count || 0
-      } as UserProfileWithRole;
+      };
     })
   );
-
   return usersWithDeviceCount;
 };
 
@@ -63,105 +49,92 @@ const DeveloperCabinet = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string>('');
   
-  useEffect(() => {
-    if (role === 'developer' || role === 'admin' || role === 'superadmin') {
-      fetchUsers();
-      if (role === 'admin' || role === 'superadmin') {
-        fetchAllUsers();
-      }
-    } else {
+  // 3. ⭐️ ОНОВЛЮЄМО ФУНКЦІЇ ЗАВАНТАЖЕННЯ
+  const loadAllUsersData = async () => {
+    if (!user || !(role === 'admin' || role === 'superadmin' || role === 'developer')) {
       setLoading(false);
+      return;
     }
-  }, [role]);
-
-  const fetchUsers = async () => {
-    if (!user) return;
+    
+    setLoading(true);
     try {
-      const query = supabase
-        .from('profiles')
-        .select('*')
-        .eq('developer_id', user.id);
-        
-      const data = await fetchAndMergeUsers(query);
-      setUsers(data);
-    } catch (err) {
-      console.error('Error fetching users:', err);
+      // 4. ⭐️ ВИКЛИКАЄМО БЕЗПЕЧНУ RPC-ФУНКЦІЮ
+      const { data, error } = await supabase.rpc('admin_get_all_users' as any) as { data: UserProfileWithRole[] | null, error: any };
+      if (error) throw error;
+
+      const allUsersData = data || [];
+      
+      // Фільтруємо "Моїх" користувачів (для 'developer')
+      const myUsersData = allUsersData.filter(u => u.developer_id === user.id);
+      
+      // Фільтруємо "Всіх" користувачів (для 'admin')
+      const otherUsersData = allUsersData.filter(u => u.user_id !== user.id);
+
+      // Завантажуємо кількість пристроїв
+      const [usersWithCount, allUsersWithCount] = await Promise.all([
+         fetchDeviceCounts(myUsersData),
+         fetchDeviceCounts(otherUsersData)
+      ]);
+
+      setUsers(usersWithCount);
+      setAllUsers(allUsersWithCount);
+
+    } catch (err: any) {
+      console.error('Error fetching users data:', err);
+      toast({
+        title: "Помилка",
+        description: `Не вдалося завантажити дані: ${err.message}`,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchAllUsers = async () => {
-    try {
-      const query = supabase
-        .from('profiles')
-        .select('*')
-        .neq('user_id', user?.id);
-        
-      const data = await fetchAndMergeUsers(query);
-      setAllUsers(data);
-    } catch (err) {
-      console.error('Error fetching all users:', err);
-    }
-  };
+  useEffect(() => {
+    loadAllUsersData();
+  }, [role, user]); // Перезавантажуємо, якщо роль змінилась
 
+  // Решта функцій: assignUserToDeveloper, updateUserCategory
   const assignUserToDeveloper = async () => {
     if (!selectedUser || !user) return;
-
+    setLoading(true); // Блокуємо UI
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ developer_id: user.id })
         .eq('user_id', selectedUser);
 
-      if (error) {
-        toast({
-          title: "Помилка",
-          description: "Не вдалося призначити користувача",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Успіх",
-        description: "Користувача успішно призначено",
-      });
-
-      fetchUsers();
-      if (role === 'admin' || role === 'superadmin') {
-        fetchAllUsers();
-      }
+      if (error) throw error;
+      toast({ title: "Успіх", description: "Користувача успішно призначено" });
+      
+      await loadAllUsersData(); // Перезавантажуємо всі дані
       setSelectedUser('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error assigning user:', err);
+      toast({ title: "Помилка", description: "Не вдалося призначити користувача", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateUserCategory = async (userId: string, category: string) => {
+    setLoading(true); // Блокуємо UI
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ category })
         .eq('user_id', userId);
 
-      if (error) {
-        toast({
-          title: "Помилка",
-          description: "Не вдалося оновити категорію",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Успіх",
-        description: "Категорію користувача оновлено",
-      });
-
-      fetchUsers();
-    } catch (err) {
+      if (error) throw error;
+      toast({ title: "Успіх", description: "Категорію користувача оновлено" });
+      
+      await loadAllUsersData(); // Перезавантажуємо всі дані
+    } catch (err: any) {
       console.error('Error updating category:', err);
+      toast({ title: "Помилка", description: "Не вдалося оновити категорію", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
