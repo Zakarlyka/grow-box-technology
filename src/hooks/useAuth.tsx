@@ -1,100 +1,122 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { useState, useEffect, createContext, useContext, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import type { Session, User } from '@supabase/supabase-js';
 
+// Тип для нашого профілю
+interface Profile {
+  id: string;
+  user_id: string;
+  full_name?: string;
+  avatar_url?: string;
+  phone?: string;
+  units?: 'metric' | 'imperial';
+}
+
+// Тип для контексту
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: Profile | null;
+  role: string; // 'user', 'admin', 'developer'
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithGitHub: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  profile: any;
-  role: string;
   refreshProfile: () => Promise<void>;
 }
 
+// Створюємо Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Створюємо Provider
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [role, setRole] = useState<string>('user'); // За замовчуванням
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [role, setRole] = useState<string>('user');
 
-  const refreshProfile = async () => {
-    if (!user) return;
-    
+  // Функція для завантаження профілю ТА ролі
+  const loadProfileAndRole = useCallback(async (sessionUser: User) => {
     try {
-      // Завантажити профіль (без ролі)
+      // 1. Завантажуємо профіль
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', sessionUser.id)
         .single();
       
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-      } else {
-        setProfile(profileData);
-      }
+      if (profileError) throw profileError;
+      setProfile(profileData);
 
-      // Завантажити роль через безпечну функцію
-      // @ts-ignore - get_my_role не в автогенерованих типах
-      const roleResponse: any = await supabase.rpc('get_my_role');
+      // 2. ЗАВАНТАЖУЄМО РОЛЬ (Найважливіше)
+      // Викликаємо SQL-функцію, яку ми створили
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_my_role'); // ⭐️ Ось правильний виклик
       
-      if (roleResponse.error) {
-        console.error('Error fetching role:', roleResponse.error);
-        setRole('user'); // Значення за замовчуванням
-      } else {
-        const userRole = typeof roleResponse.data === 'string' ? roleResponse.data : 'user';
-        setRole(userRole);
-      }
-    } catch (err) {
-      console.error('Profile/role fetch error:', err);
+      if (roleError) throw roleError;
+      
+      setRole(roleData || 'user'); // Встановлюємо роль
+
+    } catch (error) {
+      console.error('Помилка завантаження профілю або ролі:', error);
+      setRole('user'); // Безпечне значення за замовчуванням
     }
-  };
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    await loadProfileAndRole(user);
+  }, [user, loadProfileAndRole]);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer profile fetch with setTimeout to avoid recursion
-        if (session?.user) {
-          setTimeout(() => {
-            refreshProfile();
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-        
-        setLoading(false);
-      }
-    );
+    const getSession = async () => {
+      setLoading(true);
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (error) {
+        console.error('Помилка getSession:', error);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        setTimeout(() => {
-          refreshProfile();
-        }, 0);
+        await loadProfileAndRole(session.user);
       }
       
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setLoading(true);
+          await loadProfileAndRole(session.user);
+          setLoading(false);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          setRole('user');
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [loadProfileAndRole]);
 
   const signIn = async (email: string, password: string) => {
     try {
