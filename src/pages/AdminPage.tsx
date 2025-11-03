@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield } from 'lucide-react';
 import { StrainManager } from '@/components/admin/StrainManager';
 import { ArticleManager } from '@/components/admin/ArticleManager';
+import { UserManager } from '@/components/admin/UserManager';
 
 export default function AdminPage() {
   const { role, loading } = useAuth();
@@ -61,19 +62,7 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>Керування Користувачами</CardTitle>
-                <CardDescription>
-                  Керування ролями та доступом користувачів
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Розділ в розробці...
-                </p>
-              </CardContent>
-            </Card>
+            <UserManager />
           </TabsContent>
         </Tabs>
       </div>
