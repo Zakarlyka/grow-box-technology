@@ -40,7 +40,7 @@ export default function DeviceDetail() {
   const { devices, loading, deleteDevice } = useDevices();
   const device = devices.find(d => d.id === id);
   const { logs, latestLog } = useDeviceLogs(id);
-  const { controls } = useDeviceControls(id || '');
+  const { controls } = useDeviceControls(device?.device_id || null);
   const { schedules } = useDeviceSchedules(id || '');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [timeInterval, setTimeInterval] = useState('24h');
