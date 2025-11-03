@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Settings, BarChart3, Shield, Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 // 1. ⭐️ ІНТЕРФЕЙС, ЯКИЙ ПОВЕРТАЄ RPC
 interface UserProfileWithRole {
@@ -28,6 +28,7 @@ interface UserProfileWithRole {
 const fetchDeviceCounts = async (users: UserProfileWithRole[]): Promise<UserProfileWithRole[]> => {
   const usersWithDeviceCount = await Promise.all(
     users.map(async (userProfile) => {
+      // Адмінам/Девелоперам дозволено читати 'devices' (ми виправили RLS)
       const { count } = await supabase
         .from('devices')
         .select('*', { count: 'exact', head: true })
@@ -43,14 +44,15 @@ const fetchDeviceCounts = async (users: UserProfileWithRole[]): Promise<UserProf
 };
 
 const DeveloperCabinet = () => {
-  const { user, role } = useAuth();
-  const [users, setUsers] = useState<UserProfileWithRole[]>([]);
-  const [allUsers, setAllUsers] = useState<UserProfileWithRole[]>([]);
+  const { user, role } = useAuth(); // Використовуємо роль з useAuth
+  const [users, setUsers] = useState<UserProfileWithRole[]>([]); // "Мої" користувачі
+  const [allUsers, setAllUsers] = useState<UserProfileWithRole[]>([]); // "Всі" користувачі
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const { toast } = useToast();
   
   // 3. ⭐️ ОНОВЛЮЄМО ФУНКЦІЇ ЗАВАНТАЖЕННЯ
-  const loadAllUsersData = async () => {
+  const loadAllUsersData = useCallback(async () => {
     if (!user || !(role === 'admin' || role === 'superadmin' || role === 'developer')) {
       setLoading(false);
       return;
@@ -71,6 +73,8 @@ const DeveloperCabinet = () => {
       const otherUsersData = allUsersData.filter(u => u.user_id !== user.id);
 
       // Завантажуємо кількість пристроїв
+      // Ми запускаємо fetchDeviceCounts ТІЛЬКИ на тих даних,
+      // які нам потрібні для відображення, щоб зменшити навантаження
       const [usersWithCount, allUsersWithCount] = await Promise.all([
          fetchDeviceCounts(myUsersData),
          fetchDeviceCounts(otherUsersData)
@@ -89,14 +93,14 @@ const DeveloperCabinet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [role, user, toast]); // Додав toast
 
   useEffect(() => {
     loadAllUsersData();
-  }, [role, user]); // Перезавантажуємо, якщо роль змінилась
+  }, [loadAllUsersData]); // Викликаємо оновлену функцію
 
   // Решта функцій: assignUserToDeveloper, updateUserCategory
-  const assignUserToDeveloper = async () => {
+  const assignUserToDeveloper = useCallback(async () => {
     if (!selectedUser || !user) return;
     setLoading(true); // Блокуємо UI
     try {
@@ -116,9 +120,9 @@ const DeveloperCabinet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedUser, user, toast, loadAllUsersData]); // Додав залежності
 
-  const updateUserCategory = async (userId: string, category: string) => {
+  const updateUserCategory = useCallback(async (userId: string, category: string) => {
     setLoading(true); // Блокуємо UI
     try {
       const { error } = await supabase
@@ -136,8 +140,9 @@ const DeveloperCabinet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, loadAllUsersData]); // Додав залежності
 
+  // 5. ⭐️ ФУНКЦІЯ GETROLEBADGE (БЕЗ ЗМІН)
   const getRoleBadge = (role: string) => {
     const colors = {
       user: 'default',
@@ -162,6 +167,7 @@ const DeveloperCabinet = () => {
     );
   };
 
+  // 6. ⭐️ ПЕРЕВІРКА ДОСТУПУ (БЕЗ ЗМІН)
   if (role !== 'developer' && role !== 'admin' && role !== 'superadmin') {
     return (
       <div className="flex-1 p-6 flex items-center justify-center">
@@ -178,6 +184,7 @@ const DeveloperCabinet = () => {
     );
   }
 
+  // 7. ⭐️ ЗАВАНТАЖЕННЯ (БЕЗ ЗМІН)
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -186,8 +193,10 @@ const DeveloperCabinet = () => {
     );
   }
 
+  // 8. ⭐️ РЕШТА JSX (БЕЗ ЗМІН, АЛЕ ТЕПЕР БЕЗПЕЧНО)
   return (
     <div className="flex-1 p-4 space-y-6">
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -241,7 +250,7 @@ const DeveloperCabinet = () => {
                         <CardDescription>{userProfile.email}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        {getRoleBadge(userProfile.role)}
+                        {getRoleBadge(userProfile.role)} 
                         <Badge variant="outline">{userProfile.category}</Badge>
                       </div>
                     </div>
@@ -292,7 +301,7 @@ const DeveloperCabinet = () => {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Всього користувачів</CardTitle>
+                <CardTitle className="text-sm font-medium">Моїх користувачів</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{users.length}</div>
@@ -300,7 +309,7 @@ const DeveloperCabinet = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Активних пристроїв</CardTitle>
+                <CardTitle className="text-sm font-medium">Активних пристроїв (моїх)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -341,7 +350,7 @@ const DeveloperCabinet = () => {
               <CardHeader>
                 <CardTitle>Призначення користувачів</CardTitle>
                 <CardDescription>
-                  Призначте користувачів до розробників для керування
+                  Призначте користувачів (девелоперам) для керування
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -354,7 +363,7 @@ const DeveloperCabinet = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {allUsers
-                          .filter(u => !u.developer_id && u.role === 'user')
+                          .filter(u => !u.developer_id && u.role === 'user') 
                           .map((user) => (
                             <SelectItem key={user.user_id} value={user.user_id}>
                               {user.full_name || user.email}
@@ -369,7 +378,7 @@ const DeveloperCabinet = () => {
                       disabled={!selectedUser}
                       className="gradient-primary text-primary-foreground"
                     >
-                      Призначити
+                      Призначити (мені)
                     </Button>
                   </div>
                 </div>
@@ -383,25 +392,25 @@ const DeveloperCabinet = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Всього користувачів</Label>
-                    <p className="text-2xl font-bold">{allUsers.length + 1}</p>
+                    <Label className="text-xs text-muted-foreground">Всього користувачів (всіх)</Label>
+                    <p className="text-2xl font-bold">{allUsers.length + 1}</p> 
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Розробників</Label>
+                    <Label className="text-xs text-muted-foreground">Розробників (всіх)</Label>
                     <p className="text-2xl font-bold">
                       {allUsers.filter(u => u.role === 'developer').length}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Незакріплених</Label>
+                    <Label className="text-xs text-muted-foreground">Незакріплених (всіх)</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => !u.developer_id && u.role === 'user').length}
+                      {allUsers.filter(u => !u.developer_id && u.role === 'user').length} 
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Адміністраторів</Label>
+                    <Label className="text-xs text-muted-foreground">Адмінів (всіх)</Label>
                     <p className="text-2xl font-bold">
-                      {allUsers.filter(u => u.role === 'admin' || u.role === 'superadmin').length + 1}
+                      {allUsers.filter(u => u.role === 'admin' || u.role === 'superadmin').length + 1} 
                     </p>
                   </div>
                 </div>
