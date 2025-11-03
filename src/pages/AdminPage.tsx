@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield } from 'lucide-react';
 import { StrainManager } from '@/components/admin/StrainManager';
+import { ArticleManager } from '@/components/admin/ArticleManager';
 
 export default function AdminPage() {
   const { role, loading } = useAuth();
@@ -56,19 +57,7 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="library">
-            <Card>
-              <CardHeader>
-                <CardTitle>Керування Бібліотекою</CardTitle>
-                <CardDescription>
-                  Керування статтями та освітніми матеріалами
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Розділ в розробці...
-                </p>
-              </CardContent>
-            </Card>
+            <ArticleManager />
           </TabsContent>
 
           <TabsContent value="users">
