@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      articles: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      custom_strains: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          start_date: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       device_controls: {
         Row: {
           control_name: string
@@ -24,6 +78,7 @@ export type Database = {
           intensity: number | null
           schedule: Json | null
           updated_at: string
+          user_id: string | null
           value: boolean | null
         }
         Insert: {
@@ -35,6 +90,7 @@ export type Database = {
           intensity?: number | null
           schedule?: Json | null
           updated_at?: string
+          user_id?: string | null
           value?: boolean | null
         }
         Update: {
@@ -46,6 +102,7 @@ export type Database = {
           intensity?: number | null
           schedule?: Json | null
           updated_at?: string
+          user_id?: string | null
           value?: boolean | null
         }
         Relationships: [
@@ -133,6 +190,7 @@ export type Database = {
           metric: string | null
           soil_moisture: number | null
           temp: number | null
+          user_id: string | null
           value: number | null
         }
         Insert: {
@@ -146,6 +204,7 @@ export type Database = {
           metric?: string | null
           soil_moisture?: number | null
           temp?: number | null
+          user_id?: string | null
           value?: number | null
         }
         Update: {
@@ -159,6 +218,7 @@ export type Database = {
           metric?: string | null
           soil_moisture?: number | null
           temp?: number | null
+          user_id?: string | null
           value?: number | null
         }
         Relationships: [
@@ -244,57 +304,54 @@ export type Database = {
       }
       devices: {
         Row: {
-          configuration: Json | null
           created_at: string
           device_id: string
-          device_id_old: string | null
-          device_id_uuid: string | null
           group_id: string | null
           id: string
+          last_activity: string | null
           last_hum: number | null
           last_seen: string | null
           last_seen_at: string | null
           last_temp: number | null
           location: string | null
           name: string
+          settings: Json | null
           status: string
           type: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          configuration?: Json | null
           created_at?: string
           device_id: string
-          device_id_old?: string | null
-          device_id_uuid?: string | null
           group_id?: string | null
           id?: string
+          last_activity?: string | null
           last_hum?: number | null
           last_seen?: string | null
           last_seen_at?: string | null
           last_temp?: number | null
           location?: string | null
           name?: string
+          settings?: Json | null
           status?: string
           type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          configuration?: Json | null
           created_at?: string
           device_id?: string
-          device_id_old?: string | null
-          device_id_uuid?: string | null
           group_id?: string | null
           id?: string
+          last_activity?: string | null
           last_hum?: number | null
           last_seen?: string | null
           last_seen_at?: string | null
           last_temp?: number | null
           location?: string | null
           name?: string
+          settings?: Json | null
           status?: string
           type?: string
           updated_at?: string
@@ -424,7 +481,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
-          role: string
+          units: Database["public"]["Enums"]["preferred_units"]
           updated_at: string
           user_id: string
         }
@@ -437,7 +494,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
-          role?: string
+          units?: Database["public"]["Enums"]["preferred_units"]
           updated_at?: string
           user_id: string
         }
@@ -450,7 +507,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
-          role?: string
+          units?: Database["public"]["Enums"]["preferred_units"]
           updated_at?: string
           user_id?: string
         }
@@ -561,6 +618,36 @@ export type Database = {
           },
         ]
       }
+      strains: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          fertilizer_schedule: Json | null
+          id: string
+          name: string
+          settings_by_phase: Json | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          fertilizer_schedule?: Json | null
+          id?: string
+          name: string
+          settings_by_phase?: Json | null
+          type?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          fertilizer_schedule?: Json | null
+          id?: string
+          name?: string
+          settings_by_phase?: Json | null
+          type?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           app_role: Database["public"]["Enums"]["app_role"] | null
@@ -587,7 +674,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_violation_rls_cols: { Args: never; Returns: string[] }
       cleanup_old_pairing_records: { Args: never; Returns: undefined }
+      get_my_role: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -595,6 +684,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_devices_offline: { Args: never; Returns: undefined }
       secure_register_device: {
         Args: {
           p_device_id: string
@@ -620,6 +710,7 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "admin" | "superadmin"
+      preferred_units: "metric" | "imperial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -748,6 +839,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "admin", "superadmin"],
+      preferred_units: ["metric", "imperial"],
     },
   },
 } as const
