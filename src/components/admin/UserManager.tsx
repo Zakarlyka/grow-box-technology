@@ -52,7 +52,7 @@ export function UserManager() {
     loadUsers();
   }, []);
 
-  // 4. ⭐️ ФУНКЦІЯ ЗМІНИ РОЛІ ЗАЛИШАЄТЬСЯ (вона працювала)
+  // 4. ⭐️ ФУНКЦІЯ ЗМІНИ РОЛІ (вона працювала)
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
     try {
