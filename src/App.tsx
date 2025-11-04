@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,11 +5,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import './i18n';
-import Index from "./pages/Index";
+import { Layout } from "./components/Layout";
+import DevicesPage from "./pages/DevicesPage";
+import DashboardPage from "./pages/DashboardPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import DeveloperPage from "./pages/DeveloperPage";
 import DeviceDetail from "./pages/DeviceDetail";
 import { RemoteControlPage } from "./pages/RemoteControlPage";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
+import { Settings } from "./pages/Settings";
 import AdminPage from "./pages/AdminPage";
 import LibraryPage from "./pages/LibraryPage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
@@ -51,13 +55,59 @@ const AppRoutes = () => {
     <Routes>
       <Route 
         path="/auth" 
-        element={user ? <Navigate to="/" replace /> : <Auth />} 
+        element={user ? <Navigate to="/devices" replace /> : <Auth />} 
       />
       <Route
         path="/"
+        element={<Navigate to="/devices" replace />}
+      />
+      <Route
+        path="/devices"
         element={
           <ProtectedRoute>
-            <Index />
+            <Layout>
+              <DevicesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <DashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AnalyticsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/developer"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <DeveloperPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Settings />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -73,7 +123,9 @@ const AppRoutes = () => {
         path="/remote-control"
         element={
           <ProtectedRoute>
-            <RemoteControlPage />
+            <Layout>
+              <RemoteControlPage />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -89,7 +141,9 @@ const AppRoutes = () => {
         path="/admin"
         element={
           <ProtectedRoute>
-            <AdminPage />
+            <Layout>
+              <AdminPage />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -97,7 +151,9 @@ const AppRoutes = () => {
         path="/library"
         element={
           <ProtectedRoute>
-            <LibraryPage />
+            <Layout>
+              <LibraryPage />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -105,7 +161,9 @@ const AppRoutes = () => {
         path="/library/:id"
         element={
           <ProtectedRoute>
-            <ArticleDetailPage />
+            <Layout>
+              <ArticleDetailPage />
+            </Layout>
           </ProtectedRoute>
         }
       />
