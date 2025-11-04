@@ -317,30 +317,6 @@ const DeveloperCabinet = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Преміум користувачів</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {users.filter(user => user.category === 'premium').length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Цього місяця</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {users.filter(user => {
-                    const userDate = new Date(user.created_at);
-                    const now = new Date();
-                    return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
-                  }).length}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
         
