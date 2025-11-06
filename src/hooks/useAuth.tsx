@@ -1,22 +1,24 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { useState, useEffect, createContext, useContext, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
+import type { Session, User } from '@supabase/supabase-js';
 
+// Тип для нашого профілю
 interface Profile {
   id: string;
   user_id: string;
-  email: string;
-  full_name: string | null;
-  phone: string | null;
-  avatar_url: string | null;
+  full_name?: string;
+  avatar_url?: string;
+  phone?: string;
+  units?: 'metric' | 'imperial';
 }
 
+// Тип для контексту
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  role: string | null;
+  role: string; // 'user', 'admin', 'developer'
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
@@ -26,80 +28,95 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
+// Створюємо Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+// Створюємо Provider
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<string>('user'); // За замовчуванням
   const [loading, setLoading] = useState(true);
 
-  const loadProfileAndRole = async (userId: string) => {
+  // Функція для завантаження профілю ТА ролі
+  const loadProfileAndRole = useCallback(async (sessionUser: User) => {
     try {
-      // Load profile
+      // 1. Завантажуємо профіль
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', sessionUser.id)
         .single();
-
+      
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // Load role using RPC
+      // 2. ЗАВАНТАЖУЄМО РОЛЬ (Найважливіше)
+      // Викликаємо SQL-функцію, яку ми створили
       const { data: roleData, error: roleError } = await supabase
-        .rpc('get_my_role' as any) as { data: string | null, error: any };
+        .rpc('get_my_role'); // ⭐️ Ось правильний виклик
+      
+      if (roleError) throw roleError;
+      
+      setRole(roleData || 'user'); // Встановлюємо роль
 
-      if (roleError) {
-        console.error('Error loading role:', roleError);
-        setRole('user'); // Default fallback
-      } else {
-        setRole(roleData || 'user');
-      }
-    } catch (error: any) {
-      console.error('Error loading profile:', error);
-      toast.error('Помилка завантаження профілю');
+    } catch (error) {
+      console.error('Помилка завантаження профілю або ролі:', error);
+      setRole('user'); // Безпечне значення за замовчуванням
     }
-  };
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    await loadProfileAndRole(user);
+  }, [user, loadProfileAndRole]);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const getSession = async () => {
+      setLoading(true);
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-        // Defer profile/role loading
-        if (session?.user) {
-          setTimeout(() => {
-            loadProfileAndRole(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
-
+      if (error) {
+        console.error('Помилка getSession:', error);
         setLoading(false);
+        return;
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setTimeout(() => {
-          loadProfileAndRole(session.user.id);
-        }, 0);
+        await loadProfileAndRole(session.user);
       }
-
+      
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setLoading(true);
+          await loadProfileAndRole(session.user);
+          setLoading(false);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          setRole('user');
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [loadProfileAndRole]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -107,45 +124,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
-
+      
       if (error) {
-        toast.error(error.message);
-        return { error };
+        toast({
+          title: "Помилка входу",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Успішний вхід",
+          description: "Ласкаво просимо до Grow Box Technology!",
+        });
       }
-
-      toast.success('Успішний вхід!');
-      return { error: null };
-    } catch (error: any) {
-      toast.error('Помилка входу');
+      
       return { error };
+    } catch (err) {
+      console.error('Sign in error:', err);
+      return { error: err };
     }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: fullName,
+            full_name: fullName || '',
           },
         },
       });
-
+      
       if (error) {
-        toast.error(error.message);
-        return { error };
+        toast({
+          title: "Помилка реєстрації",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Реєстрація успішна",
+          description: "Перевірте електронну пошту для підтвердження акаунта.",
+        });
       }
-
-      toast.success('Реєстрація успішна! Перевірте email для підтвердження.');
-      return { error: null };
-    } catch (error: any) {
-      toast.error('Помилка реєстрації');
+      
       return { error };
+    } catch (err) {
+      console.error('Sign up error:', err);
+      return { error: err };
     }
   };
 
@@ -157,16 +188,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirectTo: `${window.location.origin}/`
         }
       });
-
+      
       if (error) {
-        toast.error(error.message);
-        return { error };
+        toast({
+          title: "Помилка входу через Google",
+          description: error.message,
+          variant: "destructive",
+        });
       }
-
-      return { error: null };
-    } catch (error: any) {
-      toast.error('Помилка входу через Google');
+      
       return { error };
+    } catch (err) {
+      console.error('Google sign in error:', err);
+      return { error: err };
     }
   };
 
@@ -178,66 +212,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirectTo: `${window.location.origin}/`
         }
       });
-
+      
       if (error) {
-        toast.error(error.message);
-        return { error };
+        toast({
+          title: "Помилка входу через GitHub",
+          description: error.message,
+          variant: "destructive",
+        });
       }
-
-      return { error: null };
-    } catch (error: any) {
-      toast.error('Помилка входу через GitHub');
+      
       return { error };
+    } catch (err) {
+      console.error('GitHub sign in error:', err);
+      return { error: err };
     }
   };
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      setRole(null);
-
-      toast.success('Вихід виконано');
-    } catch (error: any) {
-      toast.error('Помилка виходу');
+      if (error) {
+        toast({
+          title: "Помилка виходу",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Успішний вихід",
+          description: "До побачення!",
+        });
+      }
+    } catch (err) {
+      console.error('Sign out error:', err);
     }
   };
 
-  const refreshProfile = async () => {
-    if (user) {
-      await loadProfileAndRole(user.id);
-    }
+  const value = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithGitHub,
+    signOut,
+    profile,
+    role,
+    refreshProfile,
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        role,
-        loading,
-        signIn,
-        signUp,
-        signInWithGoogle,
-        signInWithGitHub,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

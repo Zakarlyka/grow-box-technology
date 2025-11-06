@@ -14,12 +14,15 @@ export function useDeviceControls(deviceId: string | null) {
     setLoading(true);
     
     try {
-      // 1. Завантажити НАЛАШТУВАННЯ через RPC
-      const { data: settingsData, error: settingsError } = await supabase
-        .rpc('get_device_settings' as any, { device_id_input: deviceId }) as { data: DeviceSettings | null, error: any };
+      // 1. Завантажити НАЛАШТУВАННЯ з 'devices.settings'
+      const result: any = await supabase
+        .from('devices')
+        .select('settings')
+        .eq('device_id', deviceId)
+        .single();
 
-      if (settingsError) throw new Error(`Помилка завантаження налаштувань: ${settingsError.message}`);
-      setSettings(settingsData);
+      if (result.error) throw new Error(`Помилка завантаження налаштувань: ${result.error.message}`);
+      setSettings(result.data?.settings as DeviceSettings);
 
       // 2. Завантажити СТАНИ з 'device_controls'
       const { data: controlsData, error: controlsError } = await supabase
@@ -65,21 +68,20 @@ export function useDeviceControls(deviceId: string | null) {
     };
   }, [fetchData, deviceId]);
 
-  // Функція збереження через RPC
+  // Функція збереження, яка оновлює 'devices.configuration' в Supabase
   const saveSettings = async (newSettings: DeviceSettings) => {
     if (!deviceId) return;
     setIsSaving(true);
     
     try {
-      const { error } = await supabase
-        .rpc('update_device_settings' as any, {
-          device_id_input: deviceId,
-          new_settings: newSettings
-        }) as { error: any };
+      const result: any = await supabase
+        .from('devices')
+        .update({ settings: newSettings } as any)
+        .eq('device_id', deviceId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setSettings(newSettings);
-      toast.success('Налаштування збережено!');
+      toast.success('Налаштування збережено в Supabase!');
     } catch (error: any) {
       toast.error(`Помилка збереження: ${error.message}`);
     } finally {
@@ -87,7 +89,7 @@ export function useDeviceControls(deviceId: string | null) {
     }
   };
 
-  // Функція оновлення стану
+  // Функція оновлення стану, яка оновлює 'device_controls' в Supabase
   const updateControl = async (controlName: string, value: boolean, intensity?: number) => {
     if (!deviceId) return;
     

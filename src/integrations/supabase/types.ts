@@ -674,21 +674,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_get_all_users: {
-        Args: never
-        Returns: {
-          app_role: Database["public"]["Enums"]["app_role"]
-          email: string
-          full_name: string
-          user_id: string
-        }[]
-      }
+      check_violation_rls_cols: { Args: never; Returns: string[] }
       cleanup_old_pairing_records: { Args: never; Returns: undefined }
-      get_device_settings: { Args: { device_id_input: string }; Returns: Json }
-      get_my_role: {
-        Args: never
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
+      get_my_role: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -712,10 +700,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      update_device_settings: {
-        Args: { device_id_input: string; new_settings: Json }
-        Returns: undefined
-      }
       verify_and_consume_pending_token: {
         Args: { p_token: string }
         Returns: {
@@ -725,7 +709,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "user" | "admin" | "superadmin" | "developer"
+      app_role: "user" | "admin" | "superadmin"
       preferred_units: "metric" | "imperial"
     }
     CompositeTypes: {
@@ -854,7 +838,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["user", "admin", "superadmin", "developer"],
+      app_role: ["user", "admin", "superadmin"],
       preferred_units: ["metric", "imperial"],
     },
   },
