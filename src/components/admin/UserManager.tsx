@@ -25,12 +25,22 @@ export function UserManager() {
 
   const loadUsers = async () => {
     try {
-      setLoading(true); // 3. ⭐️ ВИКЛИКАЄМО НАШУ БЕЗПЕЧНУ RPC-ФУНКЦІЮ v1.9
+      setLoading(true);
+      
       const { data, error } = await supabase.rpc("admin_get_all_users");
 
-      if (error) throw error;
-      // Типізуємо дані з RPC
-      setUsers((data as AdminUser[]) || []);
+      if (error) {
+        console.error("RPC error:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.warn("No data returned from admin_get_all_users");
+        setUsers([]);
+        return;
+      }
+      
+      setUsers(data as AdminUser[]);
     } catch (error: any) {
       console.error("Error loading users:", error);
       toast({
@@ -38,6 +48,7 @@ export function UserManager() {
         description: `Не вдалося завантажити список користувачів: ${error.message}`,
         variant: "destructive",
       });
+      setUsers([]); // Set empty array on error to stop loading state
     } finally {
       setLoading(false);
     }
