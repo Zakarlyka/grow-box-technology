@@ -674,9 +674,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_violation_rls_cols: { Args: never; Returns: string[] }
+      admin_get_all_users: {
+        Args: never
+        Returns: {
+          app_role: Database["public"]["Enums"]["app_role"]
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       cleanup_old_pairing_records: { Args: never; Returns: undefined }
-      get_my_role: { Args: never; Returns: string }
+      get_my_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -709,7 +720,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "user" | "admin" | "superadmin"
+      app_role: "user" | "admin" | "superadmin" | "developer"
       preferred_units: "metric" | "imperial"
     }
     CompositeTypes: {
@@ -838,7 +849,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["user", "admin", "superadmin"],
+      app_role: ["user", "admin", "superadmin", "developer"],
       preferred_units: ["metric", "imperial"],
     },
   },
