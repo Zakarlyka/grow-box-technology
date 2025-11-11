@@ -2,20 +2,13 @@
 // (або /pages/AdminPage.tsx, залежно від вашої структури)
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client"; // Переконайтеся, що шлях правильний
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"; // Переконайтеся, що шлях правильний
+import { useToast } from "@/hooks/use-toast";
 import { Users, Loader2 } from "lucide-react";
-
-// 1. Інтерфейс для даних, які повертає НАША RPC-функція
-interface AdminUser {
-  user_id: string; // auth.users id
-  full_name: string | null;
-  email: string;
-  app_role: string; // Наша колонка 'app_role'
-}
+import type { RpcFunctionDefinitions, AdminUser } from '@/types/supabase-overrides';
 
 export function UserManager() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -27,10 +20,9 @@ export function UserManager() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.rpc("admin_get_all_users" as any) as { 
-        data: AdminUser[] | null, 
-        error: any 
-      };
+      const response = await (supabase.rpc as any)('admin_get_all_users');
+      const data: AdminUser[] | null = response.data;
+      const error = response.error;
 
       if (error) {
         console.error("RPC error:", error);

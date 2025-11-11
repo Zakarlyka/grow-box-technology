@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback, ReactNode 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import type { Session, User } from '@supabase/supabase-js';
+import type { RpcFunctionDefinitions } from '@/types/supabase-overrides';
 
 // Тип для нашого профілю
 interface Profile {
@@ -54,11 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(profileData);
 
       // Завантажуємо роль
-      const { data: roleData, error: roleError } = await supabase
-        .rpc('get_my_role' as any) as { data: string | null, error: any };
+      const roleResponse = await (supabase.rpc as any)('get_my_role');
+      const roleData: string | null = roleResponse.data;
+      const roleError = roleResponse.error;
       
       if (roleError) throw roleError;
-      setRole((roleData as string) || 'user');
+      setRole(roleData || 'user');
 
     } catch (error) {
       console.error('Помилка завантаження профілю або ролі:', error);
@@ -84,13 +86,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfile(profileData);
 
         // Завантажуємо роль один раз
-        const { data: roleData, error: roleError } = await supabase
-          .rpc('get_my_role' as any) as { data: string | null, error: any };
+        const roleResponse = await (supabase.rpc as any)('get_my_role');
         
         if (!mounted) return;
         
+        const roleData: string | null = roleResponse.data;
+        const roleError = roleResponse.error;
+        
         if (roleError) throw roleError;
-        setRole((roleData as string) || 'user');
+        setRole(roleData || 'user');
 
       } catch (error) {
         if (!mounted) return;
