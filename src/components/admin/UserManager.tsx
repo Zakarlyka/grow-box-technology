@@ -27,7 +27,10 @@ export function UserManager() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.rpc("admin_get_all_users");
+      const { data, error } = await supabase.rpc("admin_get_all_users" as any) as { 
+        data: AdminUser[] | null, 
+        error: any 
+      };
 
       if (error) {
         console.error("RPC error:", error);
@@ -66,7 +69,7 @@ export function UserManager() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .update({ app_role: newRole as any })
+        .update({ role: newRole as any })
         .eq("user_id", userId);
 
       if (error) throw error;

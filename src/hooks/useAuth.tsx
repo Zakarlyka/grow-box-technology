@@ -55,10 +55,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Завантажуємо роль
       const { data: roleData, error: roleError } = await supabase
-        .rpc('get_my_role');
+        .rpc('get_my_role' as any) as { data: string | null, error: any };
       
       if (roleError) throw roleError;
-      setRole(roleData || 'user');
+      setRole((roleData as string) || 'user');
 
     } catch (error) {
       console.error('Помилка завантаження профілю або ролі:', error);
@@ -85,12 +85,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Завантажуємо роль один раз
         const { data: roleData, error: roleError } = await supabase
-          .rpc('get_my_role');
+          .rpc('get_my_role' as any) as { data: string | null, error: any };
         
         if (!mounted) return;
         
         if (roleError) throw roleError;
-        setRole(roleData || 'user');
+        setRole((roleData as string) || 'user');
 
       } catch (error) {
         if (!mounted) return;
