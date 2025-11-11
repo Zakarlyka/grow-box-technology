@@ -39,40 +39,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string>('user'); // За замовчуванням
   const [loading, setLoading] = useState(true);
 
-  // Функція для завантаження профілю ТА ролі
-  const loadProfileAndRole = useCallback(async (sessionUser: User) => {
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    
     try {
-      // 1. Завантажуємо профіль
+      // Завантажуємо профіль
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', sessionUser.id)
+        .eq('user_id', user.id)
         .single();
       
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // 2. ЗАВАНТАЖУЄМО РОЛЬ (Найважливіше)
-      // Викликаємо SQL-функцію, яку ми створили
+      // Завантажуємо роль
       const { data: roleData, error: roleError } = await supabase
-        .rpc('get_my_role'); // ⭐️ Ось правильний виклик
+        .rpc('get_my_role');
       
       if (roleError) throw roleError;
-      
-      setRole(roleData || 'user'); // Встановлюємо роль
+      setRole(roleData || 'user');
 
     } catch (error) {
       console.error('Помилка завантаження профілю або ролі:', error);
-      setRole('user'); // Безпечне значення за замовчуванням
+      setRole('user');
     }
-  }, []);
-
-  const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    await loadProfileAndRole(user);
-  }, [user, loadProfileAndRole]);
+  }, [user]);
 
   useEffect(() => {
+    let mounted = true;
+
+    const loadUserData = async (sessionUser: User) => {
+      try {
+        // Завантажуємо профіль
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', sessionUser.id)
+          .single();
+        
+        if (!mounted) return;
+        
+        if (profileError) throw profileError;
+        setProfile(profileData);
+
+        // Завантажуємо роль один раз
+        const { data: roleData, error: roleError } = await supabase
+          .rpc('get_my_role');
+        
+        if (!mounted) return;
+        
+        if (roleError) throw roleError;
+        setRole(roleData || 'user');
+
+      } catch (error) {
+        if (!mounted) return;
+        console.error('Помилка завантаження профілю або ролі:', error);
+        setRole('user');
+      }
+    };
+
     const getSession = async () => {
       setLoading(true);
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -83,11 +109,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        await loadProfileAndRole(session.user);
+        await loadUserData(session.user);
       }
       
       setLoading(false);
@@ -97,12 +125,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session?.user) {
           setLoading(true);
-          await loadProfileAndRole(session.user);
+          await loadUserData(session.user);
           setLoading(false);
         }
         
@@ -114,9 +144,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, [loadProfileAndRole]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
