@@ -58,13 +58,11 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     const control = controls.find(c => c.control_name === controlName);
     return {
       value: control?.value || false,
-      intensity: control?.intensity || 50,
     };
   };
 
   const handleToggle = async (controlName: string, checked: boolean) => {
-    const state = getControlState(controlName);
-    await updateControl(controlName, checked, state.intensity);
+    await updateControl(controlName, checked);
   };
 
   const handleIntensityChange = (controlName: string, value: number[]) => {
@@ -72,9 +70,8 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   };
 
   const handleIntensityCommit = async (controlName: string) => {
-    const state = getControlState(controlName);
-    const intensity = localIntensities[controlName] ?? state.intensity;
-    await updateControl(controlName, state.value, intensity);
+    const intensity = localIntensities[controlName] ?? 50;
+    await updateControl(controlName, intensity);
   };
 
   const handleSaveSettings = async () => {
