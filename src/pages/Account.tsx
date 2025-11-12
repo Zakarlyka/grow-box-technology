@@ -59,7 +59,7 @@ export default function Account() {
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Помилка завантаження профілю:', error);
@@ -68,6 +68,27 @@ export default function Account() {
           description: 'Не вдалося завантажити профіль',
           variant: 'destructive',
         });
+      } else if (!data) {
+        // Профіль не існує - створюємо новий
+        const { data: newProfile, error: insertError } = await (supabase as any)
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            full_name: user.user_metadata?.full_name || '',
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Помилка створення профілю:', insertError);
+          toast({
+            title: 'Помилка',
+            description: 'Не вдалося створити профіль',
+            variant: 'destructive',
+          });
+        } else {
+          setProfile({ ...newProfile, email: user.email || '' } as any);
+        }
       } else {
         setProfile({ ...data, email: user.email || '' } as any);
       }
