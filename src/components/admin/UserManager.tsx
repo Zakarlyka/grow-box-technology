@@ -61,7 +61,7 @@ export function UserManager() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .update({ role: newRole as any })
+        .update({ app_role: newRole } as any)
         .eq("user_id", userId);
 
       if (error) throw error;
