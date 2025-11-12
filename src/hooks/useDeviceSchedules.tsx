@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { DeviceSchedule } from '@/types';
+
+export interface DeviceSchedule {
+  id: string;
+  device_id: string;
+  control_name: string;
+  schedule_type: string;
+  start_time: string;
+  end_time: string;
+  days_of_week: number[];
+  is_active: boolean;
+  interval_minutes?: number;
+}
 
 export function useDeviceSchedules(deviceId: string) {
   const [schedules, setSchedules] = useState<DeviceSchedule[]>([]);
@@ -14,7 +25,7 @@ export function useDeviceSchedules(deviceId: string) {
         .from('device_schedules')
         .select('*')
         .eq('device_id', deviceId)
-        .eq('enabled', true);
+        .eq('is_active', true);
 
       if (error) throw error;
       setSchedules(data || []);

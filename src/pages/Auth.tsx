@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Sprout } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +23,6 @@ const Auth = () => {
   const { signIn, signUp, signInWithGoogle, signInWithGitHub } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -36,13 +34,7 @@ const Auth = () => {
     
     const { error } = await signIn(formData.email, formData.password);
     
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Помилка входу",
-        description: error.message || "Не вдалося увійти. Перевірте email і пароль."
-      });
-    } else {
+    if (!error) {
       navigate('/');
     }
     
@@ -53,11 +45,6 @@ const Auth = () => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Помилка реєстрації",
-        description: "Паролі не співпадають"
-      });
       return;
     }
     
@@ -65,17 +52,7 @@ const Auth = () => {
     
     const { error } = await signUp(formData.email, formData.password, formData.fullName);
     
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Помилка реєстрації",
-        description: error.message || "Не вдалося створити акаунт. Можливо, цей email вже використовується."
-      });
-    } else {
-      toast({
-        title: "Успішна реєстрація!",
-        description: "Ваш акаунт створено. Можете увійти."
-      });
+    if (!error) {
       navigate('/');
     }
     
@@ -89,15 +66,10 @@ const Auth = () => {
       ? await signInWithGoogle()
       : await signInWithGitHub();
     
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Помилка входу",
-        description: error.message || `Не вдалося увійти через ${provider}`
-      });
-      setIsOAuthLoading(null);
-    } else {
+    if (!error) {
       navigate('/');
+    } else {
+      setIsOAuthLoading(null);
     }
   };
 

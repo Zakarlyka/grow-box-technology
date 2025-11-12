@@ -36,14 +36,13 @@ import {
 } from 'lucide-react';
 
 interface SensorData {
-  timestamp: string;
-  temperature?: number;
-  humidity?: number;
+  created_at: string;
+  temp?: number;
+  hum?: number;
   soil_moisture?: number;
-  light?: number;
-  ph?: number;
-  ec?: number;
-  co2?: number;
+  light_level?: number;
+  light_cycle_hours?: number;
+  irrigation_time?: string;
 }
 
 interface Device {
@@ -144,10 +143,10 @@ export function AdvancedCharts() {
       cutoffTime.setHours(cutoffTime.getHours() - hours);
 
       let query = supabase
-        .from('sensor_data')
+        .from('device_logs')
         .select('*')
-        .gte('timestamp', cutoffTime.toISOString())
-        .order('timestamp', { ascending: true });
+        .gte('created_at', cutoffTime.toISOString())
+        .order('created_at', { ascending: true });
 
       if (selectedDevice !== 'all') {
         query = query.eq('device_id', selectedDevice);
@@ -179,7 +178,7 @@ export function AdvancedCharts() {
     const grouped: Record<string, SensorData[]> = {};
 
     data.forEach(point => {
-      const date = new Date(point.timestamp);
+      const date = new Date(point.created_at);
       const intervalKey = new Date(
         Math.floor(date.getTime() / (intervalMinutes * 60 * 1000)) * (intervalMinutes * 60 * 1000)
       ).toISOString();

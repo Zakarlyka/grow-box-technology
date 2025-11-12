@@ -94,7 +94,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
         .eq('devices.user_id', user.id);
 
       if (!error && data) {
-        setSchedules(data as any);
+        setSchedules(data);
       }
     } catch (err) {
       console.error('Error fetching schedules:', err);
@@ -125,7 +125,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
 
       const { error } = await supabase
         .from('device_schedules')
-        .insert(scheduleData as any);
+        .insert(scheduleData);
 
       if (error) {
         toast({
@@ -220,7 +220,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
     try {
       const { error } = await supabase
         .from('device_schedules')
-        .update({ enabled: !schedule.is_active } as any)
+        .update({ is_active: !schedule.is_active })
         .eq('id', schedule.id);
 
       if (error) {

@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { SensorData } from '@/types';
+
+export interface DeviceLog {
+  id: string;
+  device_id: string;
+  temperature?: number;
+  humidity?: number;
+  soil_moisture?: number;
+  light_level?: number;
+  water_level?: number;
+  ph_level?: number;
+  ec_level?: number;
+  timestamp: string;
+}
 
 export function useDeviceLogs(deviceId?: string) {
-  const [logs, setLogs] = useState<SensorData[]>([]);
-  const [latestLog, setLatestLog] = useState<SensorData | null>(null);
+  const [logs, setLogs] = useState<DeviceLog[]>([]);
+  const [latestLog, setLatestLog] = useState<DeviceLog | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = async () => {
@@ -48,7 +60,7 @@ export function useDeviceLogs(deviceId?: string) {
           },
           (payload) => {
             console.log('New sensor data:', payload);
-            const newLog = payload.new as SensorData;
+            const newLog = payload.new as DeviceLog;
             setLatestLog(newLog);
             setLogs((prev) => [newLog, ...prev.slice(0, 99)]);
           }

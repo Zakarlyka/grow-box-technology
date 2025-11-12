@@ -111,9 +111,10 @@ const UserCabinet = () => {
     if (!user) return;
     
     try {
-      // device_groups table doesn't exist, skip for now
-      const data: any[] = [];
-      const error = null;
+      const { data, error } = await supabase
+        .from('device_groups')
+        .select('*')
+        .eq('user_id', user.id);
 
       if (!error && data) {
         setGroups(data);
@@ -133,8 +134,9 @@ const UserCabinet = () => {
           user_id: user.id,
           device_id: newDevice.device_id,
           name: newDevice.name,
-          type: 'default',
-        } as any);
+          location: newDevice.location,
+          group_id: newDevice.group_id || null,
+        });
 
       if (error) {
         toast({

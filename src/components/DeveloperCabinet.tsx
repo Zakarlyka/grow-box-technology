@@ -106,7 +106,7 @@ const DeveloperCabinet = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: 'Updated' } as any)
+        .update({ developer_id: user.id })
         .eq('user_id', selectedUser);
 
       if (error) throw error;
@@ -127,7 +127,7 @@ const DeveloperCabinet = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: category } as any)
+        .update({ category })
         .eq('user_id', userId);
 
       if (error) throw error;

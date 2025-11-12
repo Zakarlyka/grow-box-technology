@@ -58,11 +58,13 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
     const control = controls.find(c => c.control_name === controlName);
     return {
       value: control?.value || false,
+      intensity: control?.intensity || 50,
     };
   };
 
   const handleToggle = async (controlName: string, checked: boolean) => {
-    await updateControl(controlName, checked);
+    const state = getControlState(controlName);
+    await updateControl(controlName, checked, state.intensity);
   };
 
   const handleIntensityChange = (controlName: string, value: number[]) => {
@@ -70,8 +72,9 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   };
 
   const handleIntensityCommit = async (controlName: string) => {
-    const intensity = localIntensities[controlName] ?? 50;
-    await updateControl(controlName, intensity);
+    const state = getControlState(controlName);
+    const intensity = localIntensities[controlName] ?? state.intensity;
+    await updateControl(controlName, state.value, intensity);
   };
 
   const handleSaveSettings = async () => {
@@ -106,10 +109,10 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const heaterState = getControlState('heater');
   const acState = getControlState('air_conditioner');
   const ventState = getControlState('ventilation');
-  const ventIntensity = localIntensities['ventilation'] ?? (ventState.value?.intensity || 50);
+  const ventIntensity = localIntensities['ventilation'] ?? ventState.intensity;
   const pumpState = getControlState('water_pump');
   const lightState = getControlState('light');
-  const lightIntensity = localIntensities['light'] ?? (lightState.value?.intensity || 50);
+  const lightIntensity = localIntensities['light'] ?? lightState.intensity;
 
   // --- Рендер ---
   return (

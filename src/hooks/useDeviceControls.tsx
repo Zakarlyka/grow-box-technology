@@ -27,7 +27,7 @@ export function useDeviceControls(deviceId: string | null) {
       // 2. Завантажити СТАНИ з 'device_controls'
       const { data: controlsData, error: controlsError } = await supabase
         .from('device_controls')
-        .select('*')
+        .select('control_name, value, intensity')
         .eq('device_id', deviceId);
 
       if (controlsError) throw new Error(`Помилка завантаження станів: ${controlsError.message}`);
@@ -90,7 +90,7 @@ export function useDeviceControls(deviceId: string | null) {
   };
 
   // Функція оновлення стану, яка оновлює 'device_controls' в Supabase
-  const updateControl = async (controlName: string, value: any) => {
+  const updateControl = async (controlName: string, value: boolean, intensity?: number) => {
     if (!deviceId) return;
     
     // Оптимістичне оновлення UI
@@ -99,18 +99,11 @@ export function useDeviceControls(deviceId: string | null) {
       if (existing) {
         return prev.map(c =>
           c.control_name === controlName
-            ? { ...c, value }
+            ? { ...c, value, intensity: intensity ?? c.intensity }
             : c
         );
       }
-      return [...prev, { 
-        id: crypto.randomUUID(),
-        device_id: deviceId,
-        control_name: controlName, 
-        control_type: typeof value === 'boolean' ? 'switch' : 'slider',
-        value,
-        updated_at: new Date().toISOString()
-      }];
+      return [...prev, { control_name: controlName, value, intensity: intensity ?? 50 }];
     });
 
     // Запит до Supabase
@@ -120,8 +113,10 @@ export function useDeviceControls(deviceId: string | null) {
         .upsert({
           device_id: deviceId,
           control_name: controlName,
-          control_type: typeof value === 'boolean' ? 'switch' : 'slider',
+          control_type: intensity !== undefined ? 'slider' : 'switch',
           value,
+          intensity: intensity ?? 50,
+          updated_at: new Date().toISOString()
         }, {
           onConflict: 'device_id,control_name'
         });
@@ -129,7 +124,7 @@ export function useDeviceControls(deviceId: string | null) {
       if (error) throw error;
       
       toast.success('Керування оновлено', {
-        description: `${controlName} оновлено`,
+        description: `${controlName} ${value ? 'увімкнено' : 'вимкнено'}`,
       });
     } catch (error: any) {
       toast.error(`Помилка перемикача: ${error.message}`);

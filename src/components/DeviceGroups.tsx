@@ -47,8 +47,14 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
     if (!user || !newGroup.name) return;
 
     try {
-      // device_groups table doesn't exist
-      const error = { message: 'Table device_groups does not exist' };
+      const { error } = await supabase
+        .from('device_groups')
+        .insert({
+          user_id: user.id,
+          name: newGroup.name,
+          description: newGroup.description,
+          color: newGroup.color,
+        });
 
       if (error) {
         toast({
@@ -76,8 +82,14 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
     if (!selectedGroup) return;
 
     try {
-      // device_groups table doesn't exist
-      const error = { message: 'Table device_groups does not exist' };
+      const { error } = await supabase
+        .from('device_groups')
+        .update({
+          name: newGroup.name,
+          description: newGroup.description,
+          color: newGroup.color,
+        })
+        .eq('id', selectedGroup.id);
 
       if (error) {
         toast({
@@ -103,8 +115,10 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
 
   const deleteGroup = async (groupId: string) => {
     try {
-      // device_groups table doesn't exist
-      const error = { message: 'Table device_groups does not exist' };
+      const { error } = await supabase
+        .from('device_groups')
+        .delete()
+        .eq('id', groupId);
 
       if (error) {
         toast({

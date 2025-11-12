@@ -60,7 +60,7 @@ export function useDevices() {
       // Calculate status dynamically for each device
       const devicesWithStatus = (data || []).map(device => ({
         ...device,
-        status: calculateDeviceStatus(device.last_seen)
+        status: calculateDeviceStatus(device.last_seen_at)
       })) as Device[];
       
       setDevices(devicesWithStatus);
@@ -173,7 +173,7 @@ export function useDeviceControls(deviceId: string) {
         .eq('device_id', deviceId);
 
       if (error) throw error;
-      setControls((data || []) as any);
+      setControls(data || []);
     } catch (error: any) {
       console.error('Error fetching controls:', error);
     } finally {
