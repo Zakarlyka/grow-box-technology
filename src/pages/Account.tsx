@@ -69,7 +69,7 @@ export default function Account() {
           variant: 'destructive',
         });
       } else {
-        setProfile(data);
+        setProfile(data as any);
       }
     } catch (err) {
       console.error('Помилка:', err);

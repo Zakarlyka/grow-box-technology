@@ -38,7 +38,7 @@ export function LogsTable({ deviceId }: LogsTableProps) {
         log.temperature || '--',
         log.humidity || '--',
         log.soil_moisture || '--',
-        log.light_level || '--',
+        log.light || '--',
       ].join(','))
     ].join('\n');
 
@@ -143,9 +143,9 @@ export function LogsTable({ deviceId }: LogsTableProps) {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {log.light_level !== null && log.light_level !== undefined ? (
+                      {log.light !== null && log.light !== undefined ? (
                         <Badge variant="outline" className="text-yellow-400 border-yellow-400/30">
-                          {log.light_level.toFixed(0)}%
+                          {log.light.toFixed(0)}%
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground">--</span>

@@ -179,7 +179,7 @@ export function AdvancedCharts() {
     const grouped: Record<string, SensorData[]> = {};
 
     data.forEach(point => {
-      const date = new Date(point.created_at);
+      const date = new Date(point.timestamp);
       const intervalKey = new Date(
         Math.floor(date.getTime() / (intervalMinutes * 60 * 1000)) * (intervalMinutes * 60 * 1000)
       ).toISOString();

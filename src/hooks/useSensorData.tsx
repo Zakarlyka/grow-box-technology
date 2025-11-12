@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SensorReading {
   id: string;
   device_id: string;
-  temp?: number;
-  hum?: number;
+  temperature?: number;
+  humidity?: number;
   soil_moisture?: number;
-  light_level?: number;
-  light_cycle_hours?: number;
-  irrigation_time?: string;
-  created_at: string;
+  light?: number;
+  ph?: number;
+  ec?: number;
+  co2?: number;
+  timestamp: string;
 }
 
 export type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
@@ -39,10 +40,10 @@ export function useSensorData(deviceId?: string, timeRange: TimeRange = '24h', c
       }
 
       let query = supabase
-        .from('device_logs')
+        .from('sensor_data')
         .select('*')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false })
+        .gte('timestamp', startDate.toISOString())
+        .order('timestamp', { ascending: false })
         .limit(1000);
 
       if (deviceId) {
@@ -89,15 +90,16 @@ export function useSensorData(deviceId?: string, timeRange: TimeRange = '24h', c
   const exportToCSV = () => {
     if (sensorData.length === 0) return;
 
-    const headers = ['Timestamp', 'Temperature (°C)', 'Humidity (%)', 'Soil Moisture (%)', 'Light Level (%)', 'Photoperiod Length (h)', 'Irrigation Time'];
+    const headers = ['Timestamp', 'Temperature (°C)', 'Humidity (%)', 'Soil Moisture (%)', 'Light (%)', 'pH', 'EC', 'CO2'];
     const rows = sensorData.map(reading => [
-      reading.created_at,
-      reading.temp?.toFixed(1) || '',
-      reading.hum?.toFixed(1) || '',
+      reading.timestamp,
+      reading.temperature?.toFixed(1) || '',
+      reading.humidity?.toFixed(1) || '',
       reading.soil_moisture?.toFixed(1) || '',
-      reading.light_level?.toFixed(1) || '',
-      reading.light_cycle_hours || '',
-      reading.irrigation_time || ''
+      reading.light?.toFixed(1) || '',
+      reading.ph?.toFixed(2) || '',
+      reading.ec?.toFixed(2) || '',
+      reading.co2?.toFixed(0) || ''
     ]);
 
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');

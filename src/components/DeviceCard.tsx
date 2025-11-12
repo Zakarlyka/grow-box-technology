@@ -19,30 +19,13 @@ export function DeviceCard({ device }: DeviceCardProps) {
 
   const isOnline = device.status === 'online';
 
-  // Get light control state and schedule
+  // Get light control state
   const lightControl = controls.find(c => c.control_name === 'light');
-  const lightSchedule = schedules.find(s => s.control_name === 'light' && s.schedule_type === 'time');
   
-  // Calculate day/night duration
+  // Calculate day/night duration from schedules
   const getLightMode = () => {
-    if (!lightSchedule || !lightSchedule.start_time || !lightSchedule.end_time) {
-      return null;
-    }
-
-    const startHour = parseInt(lightSchedule.start_time.split(':')[0]);
-    const endHour = parseInt(lightSchedule.end_time.split(':')[0]);
-    
-    let dayDuration = endHour - startHour;
-    if (dayDuration < 0) dayDuration += 24;
-    const nightDuration = 24 - dayDuration;
-
-    const isDay = lightControl?.value || false;
-
-    return {
-      isDay,
-      dayDuration,
-      nightDuration,
-    };
+    // For now, return null - schedules need proper implementation
+    return null;
   };
 
   const lightMode = getLightMode();

@@ -74,30 +74,12 @@ export default function DeviceDetail() {
 
   const isOnline = device.status === 'online';
 
-  // Get light control state and schedule
+  // Get light control state
   const lightControl = controls.find(c => c.control_name === 'light');
-  const lightSchedule = schedules.find(s => s.control_name === 'light' && s.schedule_type === 'time');
 
-  // Calculate day/night mode
+  // Calculate day/night mode - disabled for now
   const getLightMode = () => {
-    if (!lightSchedule || !lightSchedule.start_time || !lightSchedule.end_time) {
-      return null;
-    }
-
-    const startHour = parseInt(lightSchedule.start_time.split(':')[0]);
-    const endHour = parseInt(lightSchedule.end_time.split(':')[0]);
-    
-    let dayDuration = endHour - startHour;
-    if (dayDuration < 0) dayDuration += 24;
-    const nightDuration = 24 - dayDuration;
-
-    const isDay = lightControl?.value || false;
-
-    return {
-      isDay,
-      dayDuration,
-      nightDuration,
-    };
+    return null;
   };
 
   const lightMode = getLightMode();
@@ -129,7 +111,7 @@ export default function DeviceDetail() {
     temperature: log.temperature || 0,
     humidity: log.humidity || 0,
     soil_moisture: log.soil_moisture || 0,
-    light_level: log.light_level || 0,
+    light_level: log.light || 0,
   }));
 
 

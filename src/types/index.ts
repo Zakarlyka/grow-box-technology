@@ -25,7 +25,7 @@ export interface DeviceControl {
   device_id: string;
   control_name: string;
   control_type: string;
-  value: any; // jsonb
+  value: any; // jsonb - can be boolean, number, object, etc
   updated_at: string;
 }
 
@@ -80,6 +80,8 @@ export interface NotificationSetting {
   max_value: number | null;
   enabled: boolean;
   created_at: string;
+  email_enabled?: boolean;
+  push_enabled?: boolean;
 }
 
 // Profile (profiles table)

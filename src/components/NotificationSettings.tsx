@@ -48,28 +48,7 @@ export function NotificationSettings() {
       }
 
       if (data) {
-        setSettings(data);
-      } else {
-        // Create default settings if none exist
-        const defaultSettings = {
-          user_id: user.id,
-          email_enabled: true,
-          push_enabled: false,
-          temperature_min: 18,
-          temperature_max: 30,
-          humidity_min: 40,
-          humidity_max: 80,
-        };
-        
-        const { data: newSettings, error: createError } = await supabase
-          .from('notification_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
-
-        if (!createError && newSettings) {
-          setSettings(newSettings);
-        }
+        setSettings(data as any);
       }
     } catch (err) {
       console.error('Error with notification settings:', err);

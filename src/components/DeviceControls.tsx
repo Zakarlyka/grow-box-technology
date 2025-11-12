@@ -106,10 +106,10 @@ export function DeviceControls({ deviceId }: DeviceControlsProps) {
   const heaterState = getControlState('heater');
   const acState = getControlState('air_conditioner');
   const ventState = getControlState('ventilation');
-  const ventIntensity = localIntensities['ventilation'] ?? ventState.intensity;
+  const ventIntensity = localIntensities['ventilation'] ?? (ventState.value?.intensity || 50);
   const pumpState = getControlState('water_pump');
   const lightState = getControlState('light');
-  const lightIntensity = localIntensities['light'] ?? lightState.intensity;
+  const lightIntensity = localIntensities['light'] ?? (lightState.value?.intensity || 50);
 
   // --- Рендер ---
   return (

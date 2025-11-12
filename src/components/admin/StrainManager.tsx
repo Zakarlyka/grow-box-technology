@@ -23,11 +23,12 @@ interface Strain {
   name: string;
   type: string;
   description: string | null;
-  settings_by_phase: any;
-  fertilizer_schedule: any;
-  info_url: string | null;
-  seed_to_harvest_days: number | null;
-  flowering_days: number | null;
+  thc_content: string | null;
+  cbd_content: string | null;
+  flowering_time: string | null;
+  yield_info: string | null;
+  difficulty: string | null;
+  effects: string[] | null;
   created_at: string;
 }
 
@@ -47,7 +48,7 @@ export function StrainManager() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStrains((data || []) as Strain[]);
+      setStrains((data || []) as any);
     } catch (error: any) {
       toast({
         title: 'Помилка завантаження',

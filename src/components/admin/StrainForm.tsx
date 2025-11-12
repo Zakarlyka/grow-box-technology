@@ -29,11 +29,12 @@ interface StrainFormProps {
     name: string;
     type: string;
     description: string | null;
-    settings_by_phase: any;
-    fertilizer_schedule: any;
-    info_url: string | null;
-    seed_to_harvest_days: number | null;
-    flowering_days: number | null;
+    thc_content: string | null;
+    cbd_content: string | null;
+    flowering_time: string | null;
+    yield_info: string | null;
+    difficulty: string | null;
+    effects: string[] | null;
   } | null;
   onSuccess: () => void;
 }
@@ -43,35 +44,34 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
   const [name, setName] = useState('');
   const [type, setType] = useState('photoperiod');
   const [description, setDescription] = useState('');
-  const [settingsByPhase, setSettingsByPhase] = useState('');
-  const [fertilizerSchedule, setFertilizerSchedule] = useState('');
-  const [infoUrl, setInfoUrl] = useState('');
-  const [seedToHarvest, setSeedToHarvest] = useState('');
-  const [floweringDays, setFloweringDays] = useState('');
+  const [thcContent, setThcContent] = useState('');
+  const [cbdContent, setCbdContent] = useState('');
+  const [floweringTime, setFloweringTime] = useState('');
+  const [yieldInfo, setYieldInfo] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [effects, setEffects] = useState('');
 
   useEffect(() => {
     if (strain) {
       setName(strain.name);
       setType(strain.type);
       setDescription(strain.description || '');
-      setSettingsByPhase(
-        strain.settings_by_phase ? JSON.stringify(strain.settings_by_phase, null, 2) : ''
-      );
-      setFertilizerSchedule(
-        strain.fertilizer_schedule ? JSON.stringify(strain.fertilizer_schedule, null, 2) : ''
-      );
-      setInfoUrl(strain.info_url || '');
-      setSeedToHarvest(strain.seed_to_harvest_days?.toString() || '');
-      setFloweringDays(strain.flowering_days?.toString() || '');
+      setThcContent(strain.thc_content || '');
+      setCbdContent(strain.cbd_content || '');
+      setFloweringTime(strain.flowering_time || '');
+      setYieldInfo(strain.yield_info || '');
+      setDifficulty(strain.difficulty || '');
+      setEffects(strain.effects?.join(', ') || '');
     } else {
       setName('');
       setType('photoperiod');
       setDescription('');
-      setSettingsByPhase('');
-      setFertilizerSchedule('');
-      setInfoUrl('');
-      setSeedToHarvest('');
-      setFloweringDays('');
+      setThcContent('');
+      setCbdContent('');
+      setFloweringTime('');
+      setYieldInfo('');
+      setDifficulty('');
+      setEffects('');
     }
   }, [strain, open]);
 
@@ -80,45 +80,18 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
     setLoading(true);
 
     try {
-      // Валідація JSON
-      let settingsJson = null;
-      let fertilizerJson = null;
-
-      if (settingsByPhase.trim()) {
-        try {
-          settingsJson = JSON.parse(settingsByPhase);
-        } catch {
-          toast({
-            title: 'Помилка',
-            description: 'Невалідний JSON в полі "Налаштування по фазах"',
-            variant: 'destructive',
-          });
-          return;
-        }
-      }
-
-      if (fertilizerSchedule.trim()) {
-        try {
-          fertilizerJson = JSON.parse(fertilizerSchedule);
-        } catch {
-          toast({
-            title: 'Помилка',
-            description: 'Невалідний JSON в полі "Графік удобрення"',
-            variant: 'destructive',
-          });
-          return;
-        }
-      }
+      const effectsArray = effects.split(',').map(e => e.trim()).filter(Boolean);
 
       const data = {
         name,
         type,
         description: description.trim() || null,
-        settings_by_phase: settingsJson,
-        fertilizer_schedule: fertilizerJson,
-        info_url: infoUrl.trim() || null,
-        seed_to_harvest_days: seedToHarvest ? parseInt(seedToHarvest) : null,
-        flowering_days: floweringDays ? parseInt(floweringDays) : null,
+        thc_content: thcContent.trim() || null,
+        cbd_content: cbdContent.trim() || null,
+        flowering_time: floweringTime.trim() || null,
+        yield_info: yieldInfo.trim() || null,
+        difficulty: difficulty.trim() || null,
+        effects: effectsArray.length > 0 ? effectsArray : null,
       };
 
       if (strain) {
@@ -210,59 +183,67 @@ export function StrainForm({ open, onOpenChange, strain, onSuccess }: StrainForm
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="info_url">Посилання на Info (Seedfinder)</Label>
+            <Label htmlFor="thc_content">THC %</Label>
             <Input
-              id="info_url"
-              value={infoUrl}
-              onChange={(e) => setInfoUrl(e.target.value)}
-              placeholder="https://en.seedfinder.eu/..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="seed_to_harvest_days">Дні (Авто)</Label>
-              <Input
-                id="seed_to_harvest_days"
-                type="number"
-                value={seedToHarvest}
-                onChange={(e) => setSeedToHarvest(e.target.value)}
-                placeholder="Напр. 70"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="flowering_days">Дні Цвітіння (Фото)</Label>
-              <Input
-                id="flowering_days"
-                type="number"
-                value={floweringDays}
-                onChange={(e) => setFloweringDays(e.target.value)}
-                placeholder="Напр. 55"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="settings">Налаштування по фазах (JSON)</Label>
-            <Textarea
-              id="settings"
-              value={settingsByPhase}
-              onChange={(e) => setSettingsByPhase(e.target.value)}
-              placeholder={`{\n  "seedling": { "target_temp": 25, "target_hum": 70, "light_hours": 18 },\n  "vegetative": { "target_temp": 24, "target_hum": 60, "light_hours": 18 },\n  "flowering": { "target_temp": 22, "target_hum": 45, "light_hours": 12 }\n}`}
-              rows={8}
-              className="font-mono text-sm"
+              id="thc_content"
+              value={thcContent}
+              onChange={(e) => setThcContent(e.target.value)}
+              placeholder="15-20%"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="fertilizer">Графік удобрення (JSON, опційно)</Label>
+            <Label htmlFor="cbd_content">CBD %</Label>
+            <Input
+              id="cbd_content"
+              value={cbdContent}
+              onChange={(e) => setCbdContent(e.target.value)}
+              placeholder="< 1%"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="flowering_time">Час цвітіння</Label>
+            <Input
+              id="flowering_time"
+              value={floweringTime}
+              onChange={(e) => setFloweringTime(e.target.value)}
+              placeholder="8-9 тижнів"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="yield_info">Інформація про урожай</Label>
             <Textarea
-              id="fertilizer"
-              value={fertilizerSchedule}
-              onChange={(e) => setFertilizerSchedule(e.target.value)}
-              placeholder={`{\n  "week_1": { "grow": 2, "bloom": 0 },\n  "week_2": { "grow": 3, "bloom": 0 }\n}`}
-              rows={6}
-              className="font-mono text-sm"
+              id="yield_info"
+              value={yieldInfo}
+              onChange={(e) => setYieldInfo(e.target.value)}
+              placeholder="400-500 г/м² indoor"
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="difficulty">Складність</Label>
+            <Select value={difficulty} onValueChange={setDifficulty}>
+              <SelectTrigger>
+                <SelectValue placeholder="Виберіть складність" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="easy">Легко</SelectItem>
+                <SelectItem value="medium">Середньо</SelectItem>
+                <SelectItem value="hard">Складно</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="effects">Ефекти (через кому)</Label>
+            <Input
+              id="effects"
+              value={effects}
+              onChange={(e) => setEffects(e.target.value)}
+              placeholder="relaxing, euphoric, creative"
             />
           </div>
 
