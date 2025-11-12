@@ -38,7 +38,7 @@ export function useSensorData(deviceId?: string, timeRange: TimeRange = '24h', c
         startDate = new Date(now.getTime() - hours * 60 * 60 * 1000);
       }
 
-      let query = supabase
+      let query = (supabase as any)
         .from('device_logs')
         .select('*')
         .gte('created_at', startDate.toISOString())
@@ -52,7 +52,7 @@ export function useSensorData(deviceId?: string, timeRange: TimeRange = '24h', c
       const { data, error } = await query;
 
       if (error) throw error;
-      setSensorData(data || []);
+      setSensorData((data as any) || []);
     } catch (error: any) {
       console.error('Error fetching sensor data:', error);
     } finally {

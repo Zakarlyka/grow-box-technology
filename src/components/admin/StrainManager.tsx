@@ -47,7 +47,7 @@ export function StrainManager() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStrains((data || []) as Strain[]);
+      setStrains((data || []) as any);
     } catch (error: any) {
       toast({
         title: 'Помилка завантаження',

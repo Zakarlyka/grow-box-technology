@@ -142,7 +142,7 @@ export function AdvancedCharts() {
       const cutoffTime = new Date();
       cutoffTime.setHours(cutoffTime.getHours() - hours);
 
-      let query = supabase
+      let query = (supabase as any)
         .from('device_logs')
         .select('*')
         .gte('created_at', cutoffTime.toISOString())
@@ -162,7 +162,7 @@ export function AdvancedCharts() {
       if (error) throw error;
 
       // Group data by time intervals for better visualization
-      const groupedData = groupDataByTimeInterval(data || [], timeRange);
+      const groupedData = groupDataByTimeInterval((data as any) || [], timeRange);
       setChartData(groupedData);
     } catch (error) {
       console.error('Error fetching chart data:', error);

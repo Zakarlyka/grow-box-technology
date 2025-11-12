@@ -104,7 +104,7 @@ const DeveloperCabinet = () => {
     if (!selectedUser || !user) return;
     setLoading(true); // Блокуємо UI
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({ developer_id: user.id })
         .eq('user_id', selectedUser);
@@ -125,7 +125,7 @@ const DeveloperCabinet = () => {
   const updateUserCategory = useCallback(async (userId: string, category: string) => {
     setLoading(true); // Блокуємо UI
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({ category })
         .eq('user_id', userId);

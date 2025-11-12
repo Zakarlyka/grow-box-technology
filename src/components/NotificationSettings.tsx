@@ -48,7 +48,7 @@ export function NotificationSettings() {
       }
 
       if (data) {
-        setSettings(data);
+        setSettings(data as any);
       } else {
         // Create default settings if none exist
         const defaultSettings = {
@@ -61,14 +61,14 @@ export function NotificationSettings() {
           humidity_max: 80,
         };
         
-        const { data: newSettings, error: createError } = await supabase
+        const { data: newSettings, error: createError } = await (supabase as any)
           .from('notification_settings')
           .insert(defaultSettings)
           .select()
           .single();
 
         if (!createError && newSettings) {
-          setSettings(newSettings);
+          setSettings(newSettings as any);
         }
       }
     } catch (err) {
@@ -85,7 +85,7 @@ export function NotificationSettings() {
       setSaving(true);
       const updatedSettings = { ...settings, [field]: value };
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('notification_settings')
         .update({ [field]: value })
         .eq('user_id', user.id);

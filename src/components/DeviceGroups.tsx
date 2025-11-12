@@ -47,7 +47,7 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
     if (!user || !newGroup.name) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_groups')
         .insert({
           user_id: user.id,
@@ -82,7 +82,7 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
     if (!selectedGroup) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_groups')
         .update({
           name: newGroup.name,
@@ -115,7 +115,7 @@ export function DeviceGroups({ groups, onGroupsChange }: DeviceGroupsProps) {
 
   const deleteGroup = async (groupId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_groups')
         .delete()
         .eq('id', groupId);

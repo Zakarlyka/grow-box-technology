@@ -111,7 +111,7 @@ const UserCabinet = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('device_groups')
         .select('*')
         .eq('user_id', user.id);
@@ -128,12 +128,13 @@ const UserCabinet = () => {
     if (!user || !newDevice.device_id || !newDevice.name) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('devices')
         .insert({
           user_id: user.id,
           device_id: newDevice.device_id,
           name: newDevice.name,
+          type: 'grow_box',
           location: newDevice.location,
           group_id: newDevice.group_id || null,
         });

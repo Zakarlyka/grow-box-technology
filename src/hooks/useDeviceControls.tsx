@@ -27,11 +27,11 @@ export function useDeviceControls(deviceId: string | null) {
       // 2. Завантажити СТАНИ з 'device_controls'
       const { data: controlsData, error: controlsError } = await supabase
         .from('device_controls')
-        .select('control_name, value, intensity')
+        .select('control_name, value')
         .eq('device_id', deviceId);
 
       if (controlsError) throw new Error(`Помилка завантаження станів: ${controlsError.message}`);
-      setControls(controlsData || []);
+      setControls((controlsData as any) || []);
 
     } catch (error: any) {
       toast.error(error.message);
@@ -108,14 +108,13 @@ export function useDeviceControls(deviceId: string | null) {
 
     // Запит до Supabase
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_controls')
         .upsert({
           device_id: deviceId,
           control_name: controlName,
           control_type: intensity !== undefined ? 'slider' : 'switch',
           value,
-          intensity: intensity ?? 50,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'device_id,control_name'

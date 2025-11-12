@@ -94,7 +94,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
         .eq('devices.user_id', user.id);
 
       if (!error && data) {
-        setSchedules(data);
+        setSchedules(data as any);
       }
     } catch (err) {
       console.error('Error fetching schedules:', err);
@@ -123,7 +123,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
         }),
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_schedules')
         .insert(scheduleData);
 
@@ -163,7 +163,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
         interval_minutes: newSchedule.schedule_type === 'interval' ? newSchedule.interval_minutes : null,
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_schedules')
         .update(scheduleData)
         .eq('id', selectedSchedule.id);
@@ -218,7 +218,7 @@ export function DeviceSchedules({ devices }: DeviceSchedulesProps) {
 
   const toggleSchedule = async (schedule: Schedule) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('device_schedules')
         .update({ is_active: !schedule.is_active })
         .eq('id', schedule.id);

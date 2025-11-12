@@ -21,14 +21,14 @@ export function useDeviceSchedules(deviceId: string) {
     if (!deviceId) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('device_schedules')
         .select('*')
         .eq('device_id', deviceId)
         .eq('is_active', true);
 
       if (error) throw error;
-      setSchedules(data || []);
+      setSchedules((data as any) || []);
     } catch (error: any) {
       console.error('Error fetching schedules:', error);
     } finally {

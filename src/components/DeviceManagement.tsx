@@ -137,7 +137,7 @@ export function DeviceManagement() {
         .eq('device_id', deviceId);
 
       if (error) throw error;
-      setDeviceControls(data || []);
+      setDeviceControls((data as any) || []);
     } catch (error: any) {
       console.error('Error fetching device controls:', error);
     }
