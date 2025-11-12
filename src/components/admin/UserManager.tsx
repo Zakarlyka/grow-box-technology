@@ -2,20 +2,13 @@
 // (або /pages/AdminPage.tsx, залежно від вашої структури)
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client"; // Переконайтеся, що шлях правильний
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"; // Переконайтеся, що шлях правильний
+import { useToast } from "@/hooks/use-toast";
 import { Users, Loader2 } from "lucide-react";
-
-// 1. Інтерфейс для даних, які повертає НАША RPC-функція
-interface AdminUser {
-  user_id: string; // auth.users id
-  full_name: string | null;
-  email: string;
-  app_role: string; // Наша колонка 'app_role'
-}
+import type { RpcFunctionDefinitions, AdminUser } from '@/types/supabase-v2.8';
 
 export function UserManager() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -27,7 +20,9 @@ export function UserManager() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.rpc("admin_get_all_users");
+      const { data, error } = await (supabase.rpc as any)(
+        'admin_get_all_users'
+      );
 
       if (error) {
         console.error("RPC error:", error);
@@ -66,7 +61,7 @@ export function UserManager() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .update({ app_role: newRole as any })
+        .update({ role: newRole as any })
         .eq("user_id", userId);
 
       if (error) throw error;
@@ -76,7 +71,7 @@ export function UserManager() {
         description: `Роль користувача успішно змінено на ${newRole}`,
       }); // Оновлюємо стан локально
 
-      setUsers((prevUsers) => prevUsers.map((u) => (u.user_id === userId ? { ...u, app_role: newRole } : u)));
+      setUsers((prevUsers) => prevUsers.map((u) => (u.user_id === userId ? { ...u, app_role: newRole as AdminUser['app_role'] } : u)));
     } catch (error: any) {
       console.error("Error updating role:", error);
       toast({

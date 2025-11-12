@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback, ReactNode 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import type { Session, User } from '@supabase/supabase-js';
+import type { RpcFunctionDefinitions, AppRole } from '@/types/supabase-v2.8';
 
 // Тип для нашого профілю
 interface Profile {
@@ -54,12 +55,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // 2. ЗАВАНТАЖУЄМО РОЛЬ (Найважливіше)
       // Викликаємо SQL-функцію, яку ми створили
-      const { data: roleData, error: roleError } = await supabase
-        .rpc('get_my_role'); // ⭐️ Ось правильний виклик
+      const { data: roleData, error: roleError } = await (supabase.rpc as any)(
+        'get_my_role'
+      );
       
       if (roleError) throw roleError;
       
-      setRole(roleData || 'user'); // Встановлюємо роль
+      setRole((roleData as AppRole) || 'user'); // Встановлюємо роль
 
     } catch (error) {
       console.error('Помилка завантаження профілю або ролі:', error);
