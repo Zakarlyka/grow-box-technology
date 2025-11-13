@@ -113,19 +113,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          setLoading(true);
-          try {
-            await loadProfileAndRole(session.user);
-          } catch (error) {
-            console.error('Помилка onAuthStateChange SIGNED_IN:', error);
-          } finally {
-            setLoading(false);
-          }
+          // Використовуємо setTimeout(0) щоб уникнути deadlock
+          setTimeout(() => {
+            setLoading(true);
+            loadProfileAndRole(session.user!)
+              .catch(error => console.error('Помилка onAuthStateChange SIGNED_IN:', error))
+              .finally(() => setLoading(false));
+          }, 0);
         }
         
         if (event === 'SIGNED_OUT') {
