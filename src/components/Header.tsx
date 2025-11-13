@@ -84,10 +84,9 @@ export function Header() {
                 <p className="text-sm font-medium">{profile?.full_name || 'Користувач'}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
                 {role && (
-                  <Badge variant="outline" className="mt-1 text-xs">
+                <Badge variant="outline" className="mt-1 text-xs">
                     {role === 'user' ? 'Користувач' : 
-                     role === 'developer' ? 'Розробник' : 
-                     role === 'moderator' ? 'Модератор' : 'Адміністратор'}
+                     role === 'developer' ? 'Розробник' : 'Адміністратор'}
                   </Badge>
                 )}
               </div>

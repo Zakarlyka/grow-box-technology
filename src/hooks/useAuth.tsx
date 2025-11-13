@@ -1,25 +1,22 @@
+// src/hooks/useAuth.tsx
+// (Версія v3.0, виправляє .single() та "втрачений" стан завантаження)
+
 import { useState, useEffect, createContext, useContext, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import type { Session, User } from '@supabase/supabase-js';
-import type { RpcFunctionDefinitions, AppRole } from '@/types/supabase-v2.8';
+import type { Database } from '@/integrations/supabase/types'; 
 
-// Тип для нашого профілю
-interface Profile {
-  id: string;
-  user_id: string;
-  full_name?: string;
-  avatar_url?: string;
-  phone?: string;
-  units?: 'metric' | 'imperial';
-}
+// Визначаємо типи з нашого 'types.ts'
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type AppRole = Database['public']['Enums']['app_role'];
 
 // Тип для контексту
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  role: string; // 'user', 'admin', 'developer'
+  role: AppRole;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
@@ -37,35 +34,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<string>('user'); // За замовчуванням
+  const [role, setRole] = useState<AppRole>('user');
   const [loading, setLoading] = useState(true);
 
   // Функція для завантаження профілю ТА ролі
   const loadProfileAndRole = useCallback(async (sessionUser: User) => {
     try {
-      // 1. Завантажуємо профіль
+      // 1. Завантажуємо профіль (ФІКС №1: .maybeSingle())
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', sessionUser.id)
-        .single();
+        .maybeSingle();
       
       if (profileError) throw profileError;
-      setProfile(profileData);
 
-      // 2. ЗАВАНТАЖУЄМО РОЛЬ (Найважливіше)
-      // Викликаємо SQL-функцію, яку ми створили
-      const { data: roleData, error: roleError } = await (supabase.rpc as any)(
-        'get_my_role'
-      );
+      let finalProfile = profileData;
+
+      // 2. Створюємо профіль, якщо його немає (ФІКС №3: Архітектура)
+      if (!profileData) {
+        console.warn('Профіль не знайдено, створюємо новий...');
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: sessionUser.id,
+            email: sessionUser.email!,
+            full_name: sessionUser.user_metadata?.full_name || null,
+          })
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        finalProfile = newProfile;
+      }
+      
+      setProfile(finalProfile);
+
+      // 3. ЗАВАНТАЖУЄМО РОЛЬ
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_my_role');
       
       if (roleError) throw roleError;
       
-      setRole((roleData as AppRole) || 'user'); // Встановлюємо роль
+      setRole(roleData || 'user');
 
     } catch (error) {
       console.error('Помилка завантаження профілю або ролі:', error);
-      setRole('user'); // Безпечне значення за замовчуванням
+      setRole('user');
     }
   }, []);
 
@@ -77,22 +92,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const getSession = async () => {
       setLoading(true);
-      const { data: { session }, error } = await supabase.auth.getSession();
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (error) {
+        if (error) throw error;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await loadProfileAndRole(session.user);
+        }
+      } catch (error) {
         console.error('Помилка getSession:', error);
+      } finally {
         setLoading(false);
-        return;
       }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await loadProfileAndRole(session.user);
-      }
-      
-      setLoading(false);
     };
 
     getSession();
@@ -104,8 +119,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (event === 'SIGNED_IN' && session?.user) {
           setLoading(true);
-          await loadProfileAndRole(session.user);
-          setLoading(false);
+          try {
+            await loadProfileAndRole(session.user);
+          } catch (error) {
+            console.error('Помилка onAuthStateChange SIGNED_IN:', error);
+          } finally {
+            setLoading(false);
+          }
         }
         
         if (event === 'SIGNED_OUT') {
