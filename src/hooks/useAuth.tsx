@@ -58,7 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from('profiles')
           .insert({
             user_id: sessionUser.id,
-            email: sessionUser.email!,
             full_name: sessionUser.user_metadata?.full_name || null,
           })
           .select()
