@@ -53,7 +53,7 @@ const DeveloperCabinet = () => {
   
   // 3. ⭐️ ОНОВЛЮЄМО ФУНКЦІЇ ЗАВАНТАЖЕННЯ
   const loadAllUsersData = useCallback(async () => {
-    if (!user || !(role === 'admin' || role === 'superadmin' || role === 'developer')) {
+    if (!user || role !== 'admin') {
       setLoading(false);
       return;
     }
@@ -167,8 +167,8 @@ const DeveloperCabinet = () => {
     );
   };
 
-  // 6. ⭐️ ПЕРЕВІРКА ДОСТУПУ (БЕЗ ЗМІН)
-  if (role !== 'developer' && role !== 'admin' && role !== 'superadmin') {
+  // 6. ⭐️ ПЕРЕВІРКА ДОСТУПУ
+  if (role !== 'admin') {
     return (
       <div className="flex-1 p-6 flex items-center justify-center">
         <Card>
@@ -176,7 +176,7 @@ const DeveloperCabinet = () => {
             <Shield className="w-16 h-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Доступ обмежено</h3>
             <p className="text-muted-foreground text-center">
-              Цей розділ доступний лише для розробників та адміністраторів
+              Цей розділ доступний лише для адміністраторів
             </p>
           </CardContent>
         </Card>
