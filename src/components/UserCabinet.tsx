@@ -576,8 +576,7 @@ const UserCabinet = () => {
                   <Label>Роль</Label>
                   <Badge variant="outline" className="mt-1">
                     {role === 'user' ? 'Користувач' : 
-                     role === 'developer' ? 'Розробник' :
-                     role === 'moderator' ? 'Модератор' : 'Адміністратор'}
+                     role === 'developer' ? 'Розробник' : 'Адміністратор'}
                   </Badge>
                 </div>
               </div>
